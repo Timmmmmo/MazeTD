@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V16 - Canvas美术版</title>
+<title>迷宫塔防 V17 - 敌人显示修复</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -250,22 +250,21 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V16</h1>
-<h2>Canvas美术版 · 全平台兼容</h2>
+<h1>🏰 迷宫塔防 V17</h1>
+<h2>敌人显示修复 · 全平台兼容</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V16新特性</h3>
-<p><b class="new">Canvas美术</b> - 纯几何绘制，无emoji依赖</p>
-<p><b class="new">全平台兼容</b> - 所有设备都能正常显示</p>
-<p><b>V15修复</b></p>
-<p>· 修复塔无法摆放问题</p>
-<p>· 修复怪物不移动问题</p>
-<p>· 添加空值保护</p>
+<h3>🆕 V17修复内容</h3>
+<p><b class="new">敌人显示</b> - 修复敌人位置计算，确保正确显示</p>
+<p><b class="new">敌人移动</b> - 修复敌人路径跟随逻辑</p>
+<p><b>V16特性</b></p>
+<p>· Canvas美术: 纯几何绘制，无emoji依赖</p>
+<p>· 全平台兼容: 所有设备都能正常显示</p>
 <p><b>塔迷宫耦合</b></p>
 <p>· 阻拦塔: 可当墙用,怪物需攻击</p>
 <p>· 传送塔: 把怪扔回起点!</p>
 <p>· 陷阱墙: 接触即伤害</p>
-<p style="margin-top:8px;color:#888">💡 Canvas绘制，全平台通用!</p>
+<p style="margin-top:8px;color:#888">💡 敌人会自动攻击堵路的墙壁!</p>
 </div>
 </div>
 <div id="game">
@@ -811,9 +810,13 @@ function makeEnemy(hp, co, sz, g, opts={}, spd=0.735) {
     usePath = findPath() || [[ENTRY.x, ENTRY.y]];
   }
   
+  // 确保ox, oy已初始化
+  const posX = (ox !== undefined ? ox : 0) + (usePath[0][0]+0.5)*CS;
+  const posY = (oy !== undefined ? oy : 0) + (usePath[0][1]+0.5)*CS;
+  
   return {
-    x: ox + (usePath[0][0]+0.5)*CS,
-    y: oy + (usePath[0][1]+0.5)*CS,
+    x: posX,
+    y: posY,
     hp: hp,
     mh: hp,
     spd: spd,
@@ -877,8 +880,11 @@ function loop() {
       usePath = findPath() || [[ENTRY.x, ENTRY.y], [EXIT.x, EXIT.y]];
     }
     const idx = Math.min(Math.floor(e.pi), usePath.length-1);
-    e.x = ox + (usePath[idx][0]+0.5)*CS;
-    e.y = oy + (usePath[idx][1]+0.5)*CS;
+    // 确保ox, oy已初始化
+    const offsetX = ox !== undefined ? ox : 0;
+    const offsetY = oy !== undefined ? oy : 0;
+    e.x = offsetX + (usePath[idx][0]+0.5)*CS;
+    e.y = offsetY + (usePath[idx][1]+0.5)*CS;
     
     // 到达终点
     if(e.pi >= usePath.length-1) {
