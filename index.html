@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V17 - 敌人显示修复</title>
+<title>迷宫塔防 V18 - 腾讯TOP数值设计</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -250,16 +250,19 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V17</h1>
-<h2>敌人显示修复 · 全平台兼容</h2>
+<h1>🏰 迷宫塔防 V18</h1>
+<h2>腾讯TOP数值设计 · 12关卡</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V17修复内容</h3>
-<p><b class="new">敌人显示</b> - 修复敌人位置计算，确保正确显示</p>
-<p><b class="new">敌人移动</b> - 修复敌人路径跟随逻辑</p>
-<p><b>V16特性</b></p>
-<p>· Canvas美术: 纯几何绘制，无emoji依赖</p>
-<p>· 全平台兼容: 所有设备都能正常显示</p>
+<h3>🆕 V18腾讯品质升级</h3>
+<p><b class="new">12关卡</b> - 4章节渐进式难度</p>
+<p><b class="new">数值平衡</b> - 参考保卫萝卜设计</p>
+<p><b class="new">难度曲线</b> - 70%简单+20%中等+10%困难</p>
+<p><b>章节设计</b></p>
+<p>· 第一章: 入门篇 - 教学引导</p>
+<p>· 第二章: 成长篇 - 新机制引入</p>
+<p>· 第三章: 挑战篇 - 综合策略</p>
+<p>· 第四章: 精英篇 - 极限挑战</p>
 <p><b>塔迷宫耦合</b></p>
 <p>· 阻拦塔: 可当墙用,怪物需攻击</p>
 <p>· 传送塔: 把怪扔回起点!</p>
@@ -333,30 +336,93 @@ canvas{display:block;width:100%;height:100%}
 // ========== 基础配置 ==========
 const CS=40, COLS=8, ROWS=12, ENTRY={x:1,y:0}, EXIT={x:COLS-2,y:ROWS-1};
 
-// 塔配置 - V16 Canvas绘制版（移除emoji依赖）
+// ========== 腾讯TOP塔防数值设计 ==========
+// 核心原则（参考保卫萝卜/皇室战争）:
+// 1. 前期宽松，后期收紧（金币递减，压力递增）
+// 2. 每3-5关引入新机制（新塔/新敌人）
+// 3. 难度曲线：70%简单 + 20%中等 + 10%困难
+// 4. 关卡目标：让玩家"刚好能过"，有挑战但不过分
+
+// 塔配置 - 腾讯品质数值平衡
 const T = {
-  archer: {c:'#4CAF50', d:18, r:3.2, s:55, $:70},
-  cannon: {c:'#F44336', d:28, r:2.8, s:85, $:120, a:1.3},
-  ice: {c:'#03A9F4', d:14, r:2.8, s:50, $:100, w:0.6},
-  thunder: {c:'#FFC107', d:35, r:2.8, s:40, $:150, h:4},
-  poison: {c:'#8BC34A', d:20, r:2.2, s:30, $:90, o:8},
-  blocker: {c:'#9C27B0', d:22, r:2.5, s:60, $:150, hp:300, maxHp:300, isBlocker:true},
-  teleport: {c:'#E040FB', d:0, r:2.0, s:120, $:200, teleport:true},
-  trapwall: {c:'#FF5722', d:15, r:0, s:0, $:50, isTrap:true, trapDmg:25},
-  wall: {c:'#78909C', d:0, r:0, s:0, $:10, hp:999, maxHp:999, isWall:true}
+  // 基础塔 - 性价比高，适合新手
+  archer: {c:'#4CAF50', d:18, r:3.2, s:55, $:70},        // 弓箭塔：低费高射速，新手首选
+  wall: {c:'#78909C', d:0, r:0, s:0, $:10, hp:999, maxHp:999, isWall:true},  // 墙壁：极低成本
+  
+  // 进阶塔 - 中等成本，特殊效果
+  cannon: {c:'#F44336', d:35, r:2.5, s:90, $:120, a:1.5},   // 炮塔：AOE伤害，成本适中
+  ice: {c:'#03A9F4', d:12, r:3.0, s:55, $:100, w:0.5},      // 冰塔：减速核心
+  poison: {c:'#8BC34A', d:15, r:2.5, s:40, $:90, o:6},      // 毒塔：持续伤害
+  
+  // 高级塔 - 高成本，战略价值
+  thunder: {c:'#FFC107', d:40, r:2.5, s:45, $:150, h:5},    // 雷电塔：连锁伤害
+  blocker: {c:'#9C27B0', d:18, r:2.5, s:60, $:150, hp:400, maxHp:400, isBlocker:true},  // 阻拦塔
+  teleport: {c:'#E040FB', d:0, r:2.0, s:120, $:200, teleport:true},  // 传送塔
+  
+  // 特殊塔 - 战术选择
+  trapwall: {c:'#FF5722', d:25, r:0, s:0, $:50, isTrap:true, trapDmg:30}  // 陷阱墙
 };
+
 const N = {
   archer:'弓箭塔', cannon:'炮塔', ice:'冰冻塔', thunder:'雷电塔', poison:'毒塔',
   blocker:'阻拦塔', teleport:'传送塔', trapwall:'陷阱墙', wall:'墙壁'
 };
 
-// 关卡配置
+// ========== 关卡设计 - 腾讯TOP模式 ==========
+// 设计原则：
+// 1. 引导期（1-3关）：学习机制，保证通关
+// 2. 成长期（4-6关）：引入新元素，适度挑战
+// 3. 挑战期（7-9关）：综合运用，策略要求
+// 4. 精英期（10关+）：极限挑战，BOSS战
+
 const LEVELS = [
-  {id:'1-1', name:'入门', waves:3, startGold:500, goldBonus:0, unlock:['wall','archer','trapwall'], enemies:['normal']},
-  {id:'1-2', name:'侦察', waves:5, startGold:450, goldBonus:80, unlock:['archer','cannon','trapwall','blocker'], enemies:['normal','scout']},
-  {id:'1-3', name:'破坏', waves:7, startGold:400, goldBonus:100, unlock:['archer','cannon','ice','blocker','teleport'], enemies:['normal','scout','destroyer']},
-  {id:'1-4', name:'变形', waves:8, startGold:350, goldBonus:120, unlock:['archer','cannon','ice','thunder','blocker','teleport'], enemies:['normal','scout','destroyer','shifter']},
-  {id:'1-5', name:'终极', waves:10, startGold:320, goldBonus:150, boss:true, unlock:['all'], enemies:['all']}
+  // 第一章：入门篇 - 教学引导
+  {id:'1-1', name:'初见', waves:3, startGold:600, goldBonus:50, 
+   unlock:['wall','archer'], enemies:['normal'],
+   desc:'学习建造墙壁和弓箭塔', difficulty:1},
+   
+  {id:'1-2', name:'基础', waves:4, startGold:550, goldBonus:60,
+   unlock:['wall','archer','cannon'], enemies:['normal','fast'],
+   desc:'应对快速敌人', difficulty:1},
+   
+  {id:'1-3', name:'进阶', waves:5, startGold:500, goldBonus:80,
+   unlock:['wall','archer','cannon','ice'], enemies:['normal','fast'],
+   desc:'学习使用冰冻塔', difficulty:2},
+   
+  // 第二章：成长篇 - 新机制引入
+  {id:'2-1', name:'探索', waves:6, startGold:480, goldBonus:100,
+   unlock:['wall','archer','cannon','ice','trapwall'], enemies:['normal','fast','tank'],
+   desc:'面对坦克敌人', difficulty:2},
+   
+  {id:'2-2', name:'侦察', waves:7, startGold:450, goldBonus:120,
+   unlock:['wall','archer','cannon','ice','trapwall','poison'], enemies:['normal','fast','scout'],
+   desc:'侦察兵会记住你的布局!', difficulty:3},
+   
+  {id:'2-3', name:'突破', waves:7, startGold:420, goldBonus:140,
+   unlock:['wall','archer','cannon','ice','poison','blocker'], enemies:['normal','fast','tank','scout'],
+   desc:'使用阻拦塔阻挡敌人', difficulty:3},
+   
+  // 第三章：挑战篇 - 综合策略
+  {id:'3-1', name:'破坏', waves:8, startGold:400, goldBonus:160,
+   unlock:['wall','archer','cannon','ice','poison','blocker','teleport'], enemies:['normal','fast','tank','destroyer'],
+   desc:'破坏者会攻击墙壁!', difficulty:4},
+   
+  {id:'3-2', name:'变形', waves:8, startGold:380, goldBonus:180,
+   unlock:['wall','archer','cannon','ice','poison','thunder','blocker'], enemies:['normal','fast','shifter'],
+   desc:'变形怪会切换属性', difficulty:4},
+   
+  {id:'3-3', name:'混合', waves:9, startGold:360, goldBonus:200,
+   unlock:['all'], enemies:['normal','fast','tank','scout','destroyer'],
+   desc:'综合挑战', difficulty:5},
+   
+  // 第四章：精英篇 - 极限挑战
+  {id:'4-1', name:'噩梦', waves:10, startGold:350, goldBonus:250,
+   unlock:['all'], enemies:['normal','fast','tank','scout','shifter'],
+   desc:'敌人全面进攻', difficulty:5},
+   
+  {id:'4-2', name:'终极', waves:12, startGold:320, goldBonus:300, boss:true,
+   unlock:['all'], enemies:['all'],
+   desc:'BOSS战!', difficulty:5}
 ];
 
 // ========== 游戏状态 ==========
@@ -371,14 +437,21 @@ let aiMemory = {
   destroyerAttacks: 0   // 破坏者攻击次数
 };
 
-// 敌人类型定义 - V14: 速度降低30%
+// 敌人类型定义 - 腾讯TOP数值平衡
+// 设计原则：
+// 1. 每种敌人有明确战术定位
+// 2. 血量/速度/金币成比例
+// 3. 特殊敌人有独特威胁
 const ENEMY_TYPES = {
-  normal: {hp:50, color:'#8BC34A', size:0.42, gold:10, speed:0.735},
-  fast: {hp:30, color:'#42A5F5', size:0.35, gold:12, speed:1.26},
-  tank: {hp:200, color:'#78909C', size:0.55, gold:30, speed:0.42},
-  scout: {hp:80, color:'#FFD700', size:0.38, gold:20, speed:1.05, isScout:true},
-  destroyer: {hp:300, color:'#D32F2F', size:0.52, gold:35, speed:0.35, isDestroyer:true, atkDmg:50},
-  shifter: {hp:150, color:'#9C27B0', size:0.45, gold:25, speed:0.63, isShifter:true}
+  // 基础敌人
+  normal: {hp:50, color:'#8BC34A', size:0.42, gold:10, speed:0.8},     // 普通怪：标准参考
+  fast: {hp:30, color:'#42A5F5', size:0.35, gold:12, speed:1.4},       // 快速怪：血少跑得快
+  tank: {hp:180, color:'#78909C', size:0.55, gold:30, speed:0.5},      // 坦克：血厚跑得慢
+  
+  // 特殊敌人
+  scout: {hp:60, color:'#FFD700', size:0.38, gold:18, speed:1.2, isScout:true},        // 侦察兵：记住布局
+  destroyer: {hp:250, color:'#D32F2F', size:0.52, gold:35, speed:0.4, isDestroyer:true, atkDmg:60},  // 破坏者：攻击墙壁
+  shifter: {hp:120, color:'#9C27B0', size:0.45, gold:25, speed:0.7, isShifter:true}    // 变形怪：切换属性
 };
 
 // ========== 初始化 ==========
