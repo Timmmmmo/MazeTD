@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V15 - 修复版</title>
+<title>迷宫塔防 V16 - Canvas美术版</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -250,23 +250,22 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V15</h1>
-<h2>修复版 · 稳定运行</h2>
+<h1>🏰 迷宫塔防 V16</h1>
+<h2>Canvas美术版 · 全平台兼容</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V15修复内容</h3>
-<p><b class="new">Bug修复</b> - 修复塔无法摆放问题</p>
-<p><b class="new">Bug修复</b> - 修复怪物不移动问题</p>
-<p><b class="new">稳定性</b> - 添加空值保护</p>
-<p><b>V14特性</b></p>
-<p>· 美术升级: 玻璃拟态UI、发光效果</p>
-<p>· 速度优化: 敌人移速降低30%</p>
-<p>· 智能破墙: 敌人自动寻路破坏迷宫</p>
+<h3>🆕 V16新特性</h3>
+<p><b class="new">Canvas美术</b> - 纯几何绘制，无emoji依赖</p>
+<p><b class="new">全平台兼容</b> - 所有设备都能正常显示</p>
+<p><b>V15修复</b></p>
+<p>· 修复塔无法摆放问题</p>
+<p>· 修复怪物不移动问题</p>
+<p>· 添加空值保护</p>
 <p><b>塔迷宫耦合</b></p>
 <p>· 阻拦塔: 可当墙用,怪物需攻击</p>
 <p>· 传送塔: 把怪扔回起点!</p>
 <p>· 陷阱墙: 接触即伤害</p>
-<p style="margin-top:8px;color:#888">💡 已修复!请测试!</p>
+<p style="margin-top:8px;color:#888">💡 Canvas绘制，全平台通用!</p>
 </div>
 </div>
 <div id="game">
@@ -296,17 +295,17 @@ canvas{display:block;width:100%;height:100%}
 </div>
 </div>
 <div id="bottom">
-<div id="current-tool">选择: <b id="tool-name">🏹弓箭塔</b> <span id="tool-cost">70金</span></div>
+<div id="current-tool">选择: <b id="tool-name">弓箭塔</b> <span id="tool-cost">70金</span></div>
 <div id="tower-panel">
-<div class="tower-btn selected" data-type="archer" onclick="pickTower('archer')"><span class="icon">🏹</span><span class="price">70</span><span class="name">弓箭</span></div>
-<div class="tower-btn" data-type="cannon" onclick="pickTower('cannon')"><span class="icon">💥</span><span class="price">120</span><span class="name">炮塔</span></div>
-<div class="tower-btn" data-type="ice" onclick="pickTower('ice')"><span class="icon">❄️</span><span class="price">100</span><span class="name">冰冻</span></div>
-<div class="tower-btn" data-type="thunder" onclick="pickTower('thunder')"><span class="icon">⚡</span><span class="price">150</span><span class="name">雷电</span></div>
-<div class="tower-btn" data-type="poison" onclick="pickTower('poison')"><span class="icon">☠️</span><span class="price">90</span><span class="name">毒塔</span></div>
-<div class="tower-btn new-tower" data-type="blocker" onclick="pickTower('blocker')"><span class="icon">🛡️</span><span class="price">150</span><span class="name">阻拦</span></div>
-<div class="tower-btn new-tower" data-type="teleport" onclick="pickTower('teleport')"><span class="icon">🌀</span><span class="price">200</span><span class="name">传送</span></div>
-<div class="tower-btn new-tower" data-type="trapwall" onclick="pickTower('trapwall')"><span class="icon">⚠️</span><span class="price">50</span><span class="name">陷阱墙</span></div>
-<div class="tower-btn" data-type="wall" onclick="pickTower('wall')"><span class="icon">🧱</span><span class="price">10</span><span class="name">墙壁</span></div>
+<div class="tower-btn selected" data-type="archer" onclick="pickTower('archer')"><canvas class="icon-cv" data-tower="archer" width="24" height="24"></canvas><span class="price">70</span><span class="name">弓箭</span></div>
+<div class="tower-btn" data-type="cannon" onclick="pickTower('cannon')"><canvas class="icon-cv" data-tower="cannon" width="24" height="24"></canvas><span class="price">120</span><span class="name">炮塔</span></div>
+<div class="tower-btn" data-type="ice" onclick="pickTower('ice')"><canvas class="icon-cv" data-tower="ice" width="24" height="24"></canvas><span class="price">100</span><span class="name">冰冻</span></div>
+<div class="tower-btn" data-type="thunder" onclick="pickTower('thunder')"><canvas class="icon-cv" data-tower="thunder" width="24" height="24"></canvas><span class="price">150</span><span class="name">雷电</span></div>
+<div class="tower-btn" data-type="poison" onclick="pickTower('poison')"><canvas class="icon-cv" data-tower="poison" width="24" height="24"></canvas><span class="price">90</span><span class="name">毒塔</span></div>
+<div class="tower-btn new-tower" data-type="blocker" onclick="pickTower('blocker')"><canvas class="icon-cv" data-tower="blocker" width="24" height="24"></canvas><span class="price">150</span><span class="name">阻拦</span></div>
+<div class="tower-btn new-tower" data-type="teleport" onclick="pickTower('teleport')"><canvas class="icon-cv" data-tower="teleport" width="24" height="24"></canvas><span class="price">200</span><span class="name">传送</span></div>
+<div class="tower-btn new-tower" data-type="trapwall" onclick="pickTower('trapwall')"><canvas class="icon-cv" data-tower="trapwall" width="24" height="24"></canvas><span class="price">50</span><span class="name">陷阱墙</span></div>
+<div class="tower-btn" data-type="wall" onclick="pickTower('wall')"><canvas class="icon-cv" data-tower="wall" width="24" height="24"></canvas><span class="price">10</span><span class="name">墙壁</span></div>
 </div>
 <div id="toolbar">
 <div class="tool-btn selected" id="tool-place" onclick="setTool('place')"><span class="icon">📍</span><span class="name">放置</span></div>
@@ -335,22 +334,21 @@ canvas{display:block;width:100%;height:100%}
 // ========== 基础配置 ==========
 const CS=40, COLS=8, ROWS=12, ENTRY={x:1,y:0}, EXIT={x:COLS-2,y:ROWS-1};
 
-// 塔配置 - 扩展版
+// 塔配置 - V16 Canvas绘制版（移除emoji依赖）
 const T = {
-  archer: {i:'🏹', c:'#4CAF50', d:18, r:3.2, s:55, $:70},
-  cannon: {i:'💥', c:'#F44336', d:28, r:2.8, s:85, $:120, a:1.3},
-  ice: {i:'❄️', c:'#03A9F4', d:14, r:2.8, s:50, $:100, w:0.6},
-  thunder: {i:'⚡', c:'#FFC107', d:35, r:2.8, s:40, $:150, h:4},
-  poison: {i:'☠️', c:'#8BC34A', d:20, r:2.2, s:30, $:90, o:8},
-  // === 新增塔类型 ===
-  blocker: {i:'🛡️', c:'#9C27B0', d:22, r:2.5, s:60, $:150, hp:300, maxHp:300, isBlocker:true},
-  teleport: {i:'🌀', c:'#E040FB', d:0, r:2.0, s:120, $:200, teleport:true},
-  trapwall: {i:'⚠️', c:'#FF5722', d:15, r:0, s:0, $:50, isTrap:true, trapDmg:25},
-  wall: {i:'🧱', c:'#78909C', d:0, r:0, s:0, $:10, hp:999, maxHp:999, isWall:true}
+  archer: {c:'#4CAF50', d:18, r:3.2, s:55, $:70},
+  cannon: {c:'#F44336', d:28, r:2.8, s:85, $:120, a:1.3},
+  ice: {c:'#03A9F4', d:14, r:2.8, s:50, $:100, w:0.6},
+  thunder: {c:'#FFC107', d:35, r:2.8, s:40, $:150, h:4},
+  poison: {c:'#8BC34A', d:20, r:2.2, s:30, $:90, o:8},
+  blocker: {c:'#9C27B0', d:22, r:2.5, s:60, $:150, hp:300, maxHp:300, isBlocker:true},
+  teleport: {c:'#E040FB', d:0, r:2.0, s:120, $:200, teleport:true},
+  trapwall: {c:'#FF5722', d:15, r:0, s:0, $:50, isTrap:true, trapDmg:25},
+  wall: {c:'#78909C', d:0, r:0, s:0, $:10, hp:999, maxHp:999, isWall:true}
 };
 const N = {
-  archer:'🏹弓箭塔', cannon:'💥炮塔', ice:'❄️冰冻塔', thunder:'⚡雷电塔', poison:'☠️毒塔',
-  blocker:'🛡️阻拦塔', teleport:'🌀传送塔', trapwall:'⚠️陷阱墙', wall:'🧱墙壁'
+  archer:'弓箭塔', cannon:'炮塔', ice:'冰冻塔', thunder:'雷电塔', poison:'毒塔',
+  blocker:'阻拦塔', teleport:'传送塔', trapwall:'陷阱墙', wall:'墙壁'
 };
 
 // 关卡配置
@@ -1283,12 +1281,8 @@ function render() {
       ctx.fillRect(tx-CS*0.32, ty-CS*0.5, CS*0.64*(t.hp/t.maxHp), 5);
     }
     
-    // 图标
-    ctx.font = (CS*0.32)+'px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(t.i, tx, ty);
+    // 塔类型图标 - Canvas绘制替代emoji
+    drawTowerIcon(ctx, t.tp, tx, ty, CS*0.28);
     
     // 传送塔冷却指示
     if(t.teleport && t.cd > 0) {
@@ -1299,8 +1293,190 @@ function render() {
       ctx.fill();
     }
   }
+
+// 塔图标绘制函数 - 纯Canvas几何图形
+function drawTowerIcon(ctx, type, x, y, r) {
+  ctx.save();
+  ctx.translate(x, y);
   
-  // 敌人 - 发光效果
+  switch(type) {
+    case 'archer':
+      // 弓箭塔 - 三角箭头
+      ctx.fillStyle = '#81C784';
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo(r*0.8, r*0.6);
+      ctx.lineTo(-r*0.8, r*0.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#4CAF50';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+      
+    case 'cannon':
+      // 炮塔 - 圆形炸弹
+      ctx.fillStyle = '#EF5350';
+      ctx.beginPath();
+      ctx.arc(0, 0, r*0.8, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#F44336';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 引线
+      ctx.strokeStyle = '#FF9800';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, -r*0.8);
+      ctx.lineTo(r*0.3, -r*1.2);
+      ctx.stroke();
+      ctx.fillStyle = '#FFEB3B';
+      ctx.beginPath();
+      ctx.arc(r*0.3, -r*1.3, r*0.15, 0, Math.PI*2);
+      ctx.fill();
+      break;
+      
+    case 'ice':
+      // 冰冻塔 - 雪花
+      ctx.strokeStyle = '#4FC3F7';
+      ctx.lineWidth = 2;
+      for(let i=0; i<6; i++) {
+        ctx.save();
+        ctx.rotate(i * Math.PI/3);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -r);
+        ctx.moveTo(0, -r*0.6);
+        ctx.lineTo(r*0.3, -r*0.8);
+        ctx.moveTo(0, -r*0.6);
+        ctx.lineTo(-r*0.3, -r*0.8);
+        ctx.stroke();
+        ctx.restore();
+      }
+      break;
+      
+    case 'thunder':
+      // 雷电塔 - 闪电
+      ctx.fillStyle = '#FFD54F';
+      ctx.beginPath();
+      ctx.moveTo(r*0.2, -r);
+      ctx.lineTo(-r*0.3, 0);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(-r*0.2, r);
+      ctx.lineTo(r*0.3, 0);
+      ctx.lineTo(0, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#FFC107';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+      
+    case 'poison':
+      // 毒塔 - 瓶子
+      ctx.fillStyle = '#66BB6A';
+      ctx.beginPath();
+      ctx.moveTo(-r*0.5, r*0.8);
+      ctx.lineTo(-r*0.5, -r*0.2);
+      ctx.quadraticCurveTo(-r*0.5, -r*0.8, 0, -r*0.8);
+      ctx.quadraticCurveTo(r*0.5, -r*0.8, r*0.5, -r*0.2);
+      ctx.lineTo(r*0.5, r*0.8);
+      ctx.closePath();
+      ctx.fill();
+      // 瓶口
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(-r*0.25, -r, r*0.5, r*0.3);
+      // 骷髅标记
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(0, 0, r*0.25, 0, Math.PI*2);
+      ctx.fill();
+      break;
+      
+    case 'blocker':
+      // 阻拦塔 - 盾牌
+      ctx.fillStyle = '#AB47BC';
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo(r*0.9, -r*0.5);
+      ctx.lineTo(r*0.9, r*0.3);
+      ctx.quadraticCurveTo(r*0.9, r, 0, r*1.1);
+      ctx.quadraticCurveTo(-r*0.9, r, -r*0.9, r*0.3);
+      ctx.lineTo(-r*0.9, -r*0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#9C27B0';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 盾牌中心
+      ctx.fillStyle = '#E1BEE7';
+      ctx.beginPath();
+      ctx.arc(0, 0, r*0.35, 0, Math.PI*2);
+      ctx.fill();
+      break;
+      
+    case 'teleport':
+      // 传送塔 - 漩涡
+      ctx.strokeStyle = '#E040FB';
+      ctx.lineWidth = 2;
+      for(let i=0; i<3; i++) {
+        ctx.beginPath();
+        ctx.arc(0, 0, r*(0.4+i*0.25), 0, Math.PI*1.5);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#E040FB';
+      ctx.beginPath();
+      ctx.arc(0, 0, r*0.2, 0, Math.PI*2);
+      ctx.fill();
+      break;
+      
+    case 'trapwall':
+      // 陷阱墙 - 警告三角
+      ctx.fillStyle = '#FF7043';
+      ctx.beginPath();
+      ctx.moveTo(0, -r);
+      ctx.lineTo(r*0.9, r*0.7);
+      ctx.lineTo(-r*0.9, r*0.7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#FF5722';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 感叹号
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(-r*0.1, -r*0.4, r*0.2, r*0.5);
+      ctx.beginPath();
+      ctx.arc(0, r*0.3, r*0.1, 0, Math.PI*2);
+      ctx.fill();
+      break;
+      
+    case 'wall':
+      // 墙壁 - 砖块
+      ctx.fillStyle = '#607D8B';
+      ctx.fillRect(-r*0.9, -r*0.9, r*1.8, r*1.8);
+      ctx.strokeStyle = '#78909C';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-r*0.9, -r*0.9, r*1.8, r*1.8);
+      // 砖缝
+      ctx.strokeStyle = '#455A64';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-r*0.9, 0);
+      ctx.lineTo(r*0.9, 0);
+      ctx.moveTo(0, -r*0.9);
+      ctx.lineTo(0, 0);
+      ctx.moveTo(-r*0.9, r*0.9);
+      ctx.lineTo(0, r*0.9);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(r*0.9, 0);
+      ctx.stroke();
+      break;
+  }
+  
+  ctx.restore();
+}
+  
+  // 敌人 - Canvas绘制发光效果
   for(const e of enemies) {
     const sz = e.sz * CS * 0.4;
     
@@ -1317,29 +1493,117 @@ function render() {
     ctx.fill();
     ctx.shadowBlur = 0;
     
-    // 变形怪元素标记
-    if(e.isShifter && e.currentElement !== 'normal') {
-      ctx.font = (sz*0.7)+'px sans-serif';
-      const icons = {fire:'🔥', ice:'❄️', poison:'☠️'};
-      ctx.fillText(icons[e.currentElement] || '', e.x, e.y);
-    }
+    // 敌人类型图标 - Canvas绘制
+    drawEnemyIcon(ctx, e, e.x, e.y, sz);
     
     // 侦察兵/破坏者特殊光环
     if(e.isScout || e.isDestroyer) {
       ctx.strokeStyle = e.isScout ? '#FFD700' : '#FF1744';
       ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
       ctx.beginPath();
-      ctx.arc(e.x, e.y, sz+4, 0, Math.PI*2);
+      ctx.arc(e.x, e.y, sz+5, 0, Math.PI*2);
       ctx.stroke();
+      ctx.setLineDash([]);
     }
     
     // 血条 - 立体效果
     ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(e.x-sz, e.y-sz-6, sz*2, 5);
+    ctx.fillRect(e.x-sz, e.y-sz-8, sz*2, 5);
     const hr = Math.max(0, e.hp/e.mh);
     ctx.fillStyle = hr>0.5 ? '#00E676' : hr>0.25 ? '#FF9100' : '#FF1744';
-    ctx.fillRect(e.x-sz, e.y-sz-6, sz*2*hr, 5);
+    ctx.fillRect(e.x-sz, e.y-sz-8, sz*2*hr, 5);
   }
+
+// 敌人图标绘制函数
+function drawEnemyIcon(ctx, e, x, y, r) {
+  ctx.save();
+  ctx.translate(x, y);
+  
+  // 变形怪元素标记
+  if(e.isShifter && e.currentElement !== 'normal') {
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    
+    switch(e.currentElement) {
+      case 'fire':
+        // 火焰
+        ctx.fillStyle = '#FF5722';
+        ctx.beginPath();
+        ctx.moveTo(0, -r*0.8);
+        ctx.quadraticCurveTo(r*0.5, -r*0.4, r*0.3, r*0.2);
+        ctx.quadraticCurveTo(r*0.2, r*0.6, 0, r*0.8);
+        ctx.quadraticCurveTo(-r*0.2, r*0.6, -r*0.3, r*0.2);
+        ctx.quadraticCurveTo(-r*0.5, -r*0.4, 0, -r*0.8);
+        ctx.fill();
+        break;
+      case 'ice':
+        // 冰晶
+        ctx.strokeStyle = '#03A9F4';
+        ctx.lineWidth = 2;
+        for(let i=0; i<6; i++) {
+          ctx.save();
+          ctx.rotate(i * Math.PI/3);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(0, -r*0.6);
+          ctx.stroke();
+          ctx.restore();
+        }
+        break;
+      case 'poison':
+        // 毒滴
+        ctx.fillStyle = '#8BC34A';
+        ctx.beginPath();
+        ctx.moveTo(0, -r*0.7);
+        ctx.quadraticCurveTo(r*0.5, 0, 0, r*0.7);
+        ctx.quadraticCurveTo(-r*0.5, 0, 0, -r*0.7);
+        ctx.fill();
+        break;
+    }
+  } else if(e.isScout) {
+    // 侦察兵 - 眼睛
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r*0.5, r*0.35, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(0, 0, r*0.15, 0, Math.PI*2);
+    ctx.fill();
+  } else if(e.isDestroyer) {
+    // 破坏者 - 锤子
+    ctx.fillStyle = '#D32F2F';
+    ctx.fillRect(-r*0.4, -r*0.2, r*0.8, r*0.5);
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(-r*0.1, r*0.3, r*0.2, r*0.5);
+  } else if(e.boss) {
+    // BOSS - 皇冠
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.moveTo(-r*0.6, r*0.2);
+    ctx.lineTo(-r*0.6, -r*0.3);
+    ctx.lineTo(-r*0.3, 0);
+    ctx.lineTo(0, -r*0.5);
+    ctx.lineTo(r*0.3, 0);
+    ctx.lineTo(r*0.6, -r*0.3);
+    ctx.lineTo(r*0.6, r*0.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#FFA000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else {
+    // 普通敌人 - 简单圆点
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath();
+    ctx.arc(0, 0, r*0.4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  
+  ctx.restore();
+}
   
   // 子弹 - 发光轨迹
   for(const b of bullets) {
@@ -1455,6 +1719,23 @@ function nextLevel() {
   updateUI();
   updateAIInfo();
   render();
+}
+
+// 初始化塔按钮图标
+function initTowerIcons() {
+  document.querySelectorAll('.icon-cv').forEach(canvas => {
+    const type = canvas.dataset.tower;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 24, 24);
+    drawTowerIcon(ctx, type, 12, 12, 10);
+  });
+}
+
+// 页面加载时初始化按钮图标
+if(document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => setTimeout(initTowerIcons, 100));
+} else {
+  setTimeout(initTowerIcons, 100);
 }
 </script>
 </body>
