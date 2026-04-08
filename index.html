@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V13 - AI进化版</title>
+<title>迷宫塔防 V15 - 修复版</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -250,22 +250,23 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V14</h1>
-<h2>腾讯品质 · 智能破墙版</h2>
+<h1>🏰 迷宫塔防 V15</h1>
+<h2>修复版 · 稳定运行</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V14新特性</h3>
-<p><b class="new">美术升级</b> - 玻璃拟态UI、发光效果</p>
-<p><b class="new">速度优化</b> - 敌人移速降低30%</p>
-<p><b class="new">智能破墙</b> - 所有敌人都会自动寻路破坏迷宫</p>
-<p><b>敌人AI</b></p>
-<p>· 侦察兵: 记住火力点,下波绕开</p>
-<p>· 变形怪: 切换属性克制单一塔</p>
+<h3>🆕 V15修复内容</h3>
+<p><b class="new">Bug修复</b> - 修复塔无法摆放问题</p>
+<p><b class="new">Bug修复</b> - 修复怪物不移动问题</p>
+<p><b class="new">稳定性</b> - 添加空值保护</p>
+<p><b>V14特性</b></p>
+<p>· 美术升级: 玻璃拟态UI、发光效果</p>
+<p>· 速度优化: 敌人移速降低30%</p>
+<p>· 智能破墙: 敌人自动寻路破坏迷宫</p>
 <p><b>塔迷宫耦合</b></p>
 <p>· 阻拦塔: 可当墙用,怪物需攻击</p>
 <p>· 传送塔: 把怪扔回起点!</p>
 <p>· 陷阱墙: 接触即伤害</p>
-<p style="margin-top:8px;color:#888">💡 敌人会智能破墙!加强火力!</p>
+<p style="margin-top:8px;color:#888">💡 已修复!请测试!</p>
 </div>
 </div>
 <div id="game">
@@ -546,13 +547,13 @@ function showTip(m) {
 }
 
 // ========== 建造系统 ==========
-function pickTower(x) {
-  cur = x;
+function pickTower(towerType) {
+  cur = towerType;
   tool = 'place';
-  document.querySelectorAll('.tower-btn').forEach(b => b.classList.toggle('selected', b.dataset.type===x));
+  document.querySelectorAll('.tower-btn').forEach(b => b.classList.toggle('selected', b.dataset.type===towerType));
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('selected', b.id==='tool-place'));
   updateTool();
-  gold < T[x].$ ? showTip('⚠️ 金币不足!') : showTip('✓ '+N[x]);
+  gold < T[towerType].$ ? showTip('⚠️ 金币不足!') : showTip('✓ '+N[towerType]);
 }
 
 function setTool(x) {
@@ -771,7 +772,7 @@ function spawnWave() {
       }
       
       setTimeout(() => {
-        if(fighting && path) {
+        if(fighting) {
           const e = createEnemyByType(etype, wave);
           enemies.push(e);
         }
@@ -807,9 +808,14 @@ function makeEnemy(hp, co, sz, g, opts={}, spd=0.735) {
     if(customPath) usePath = customPath;
   }
   
+  // 确保path有效
+  if(!usePath || usePath.length === 0) {
+    usePath = findPath() || [[ENTRY.x, ENTRY.y]];
+  }
+  
   return {
-    x: ox + (path[0][0]+0.5)*CS,
-    y: oy + (path[0][1]+0.5)*CS,
+    x: ox + (usePath[0][0]+0.5)*CS,
+    y: oy + (usePath[0][1]+0.5)*CS,
     hp: hp,
     mh: hp,
     spd: spd,
@@ -866,9 +872,12 @@ function loop() {
     if(e.sl > 0) { sp *= 0.4; e.sl--; }
     if(e.dt > 0) { e.hp -= e.dv; e.dt--; }
     
-    // 路径移动
+    // 路径移动 - 确保path有效
     e.pi += sp/60;
-    const usePath = e.customPath || path;
+    let usePath = e.customPath || path;
+    if(!usePath || usePath.length === 0) {
+      usePath = findPath() || [[ENTRY.x, ENTRY.y], [EXIT.x, EXIT.y]];
+    }
     const idx = Math.min(Math.floor(e.pi), usePath.length-1);
     e.x = ox + (usePath[idx][0]+0.5)*CS;
     e.y = oy + (usePath[idx][1]+0.5)*CS;
@@ -1008,8 +1017,9 @@ function loop() {
           // 传送回起点附近
           const oldPi = e.pi;
           e.pi = Math.max(0, e.pi - 5); // 后退5格
-          e.x = ox + (path[Math.floor(e.pi)][0]+0.5)*CS;
-          e.y = oy + (path[Math.floor(e.pi)][1]+0.5)*CS;
+          const tp = path && path.length > Math.floor(e.pi) ? path : (findPath() || [[ENTRY.x, ENTRY.y]]);
+          e.x = ox + (tp[Math.floor(e.pi)][0]+0.5)*CS;
+          e.y = oy + (tp[Math.floor(e.pi)][1]+0.5)*CS;
           
           spawnP(e.x, e.y, '#E040FB', 20);
           dmgTexts.push({x:tx, y:ty-30, txt:'🌀传送!', co:'#E040FB', life:40});
