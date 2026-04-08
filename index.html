@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V3.0 - 全面优化</title>
+<title>迷宫塔防 V3.1 - 数值平衡调整</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -297,13 +297,13 @@ canvas{display:block;width:100%;height:100%}
 <div id="current-tool">选择: <b id="tool-name">弓箭塔</b> <span id="tool-cost">70金</span></div>
 <div id="tower-panel">
 <div class="tower-btn selected" data-type="archer" onclick="pickTower('archer')"><canvas class="icon-cv" data-tower="archer" width="24" height="24"></canvas><span class="price">70</span><span class="name">弓箭</span></div>
-<div class="tower-btn" data-type="cannon" onclick="pickTower('cannon')"><canvas class="icon-cv" data-tower="cannon" width="24" height="24"></canvas><span class="price">120</span><span class="name">炮塔</span></div>
-<div class="tower-btn" data-type="ice" onclick="pickTower('ice')"><canvas class="icon-cv" data-tower="ice" width="24" height="24"></canvas><span class="price">100</span><span class="name">冰冻</span></div>
-<div class="tower-btn" data-type="thunder" onclick="pickTower('thunder')"><canvas class="icon-cv" data-tower="thunder" width="24" height="24"></canvas><span class="price">150</span><span class="name">雷电</span></div>
-<div class="tower-btn" data-type="poison" onclick="pickTower('poison')"><canvas class="icon-cv" data-tower="poison" width="24" height="24"></canvas><span class="price">90</span><span class="name">毒塔</span></div>
-<div class="tower-btn new-tower" data-type="blocker" onclick="pickTower('blocker')"><canvas class="icon-cv" data-tower="blocker" width="24" height="24"></canvas><span class="price">150</span><span class="name">阻拦</span></div>
-<div class="tower-btn new-tower" data-type="teleport" onclick="pickTower('teleport')"><canvas class="icon-cv" data-tower="teleport" width="24" height="24"></canvas><span class="price">200</span><span class="name">传送</span></div>
-<div class="tower-btn new-tower" data-type="trapwall" onclick="pickTower('trapwall')"><canvas class="icon-cv" data-tower="trapwall" width="24" height="24"></canvas><span class="price">50</span><span class="name">陷阱墙</span></div>
+<div class="tower-btn" data-type="cannon" onclick="pickTower('cannon')"><canvas class="icon-cv" data-tower="cannon" width="24" height="24"></canvas><span class="price">115</span><span class="name">炮塔</span></div>
+<div class="tower-btn" data-type="ice" onclick="pickTower('ice')"><canvas class="icon-cv" data-tower="ice" width="24" height="24"></canvas><span class="price">90</span><span class="name">冰冻</span></div>
+<div class="tower-btn" data-type="thunder" onclick="pickTower('thunder')"><canvas class="icon-cv" data-tower="thunder" width="24" height="24"></canvas><span class="price">160</span><span class="name">雷电</span></div>
+<div class="tower-btn" data-type="poison" onclick="pickTower('poison')"><canvas class="icon-cv" data-tower="poison" width="24" height="24"></canvas><span class="price">105</span><span class="name">毒塔</span></div>
+<div class="tower-btn new-tower" data-type="blocker" onclick="pickTower('blocker')"><canvas class="icon-cv" data-tower="blocker" width="24" height="24"></canvas><span class="price">140</span><span class="name">阻拦</span></div>
+<div class="tower-btn new-tower" data-type="teleport" onclick="pickTower('teleport')"><canvas class="icon-cv" data-tower="teleport" width="24" height="24"></canvas><span class="price">210</span><span class="name">传送</span></div>
+<div class="tower-btn new-tower" data-type="trapwall" onclick="pickTower('trapwall')"><canvas class="icon-cv" data-tower="trapwall" width="24" height="24"></canvas><span class="price">45</span><span class="name">陷阱墙</span></div>
 <div class="tower-btn" data-type="wall" onclick="pickTower('wall')"><canvas class="icon-cv" data-tower="wall" width="24" height="24"></canvas><span class="price">10</span><span class="name">墙壁</span></div>
 </div>
 <div id="toolbar">
@@ -333,25 +333,26 @@ canvas{display:block;width:100%;height:100%}
 // ========== 基础配置 ==========
 const CS=40, COLS=8, ROWS=12, ENTRY={x:1,y:0}, EXIT={x:COLS-2,y:ROWS-1};
 
-// ========== V2.0 数值系统 - 参考腾讯TOP塔防 ==========
+// ========== V3.1 数值系统 - 方案A保守调整 ==========
 // 设计原则：易上手难精通、策略多样、资源约束
+// 调整说明：敌人血量+20%，塔成本+15%，增加后期挑战
 
-// 塔配置 - 精心平衡的数值
+// 塔配置 - 精心平衡的数值（V3.1调整）
 const T = {
   // === 基础塔 - 新手友好 ===
-  archer: {c:'#4CAF50', d:15, r:3.5, s:40, $:60},  // 弓箭塔：低成本稳定输出
-  wall: {c:'#78909C', d:0, r:0, s:0, $:10, hp:500, maxHp:500, isWall:true},  // 墙壁：基础阻拦
+  archer: {c:'#4CAF50', d:15, r:3.5, s:40, $:70},  // 弓箭塔：60→70金
+  wall: {c:'#78909C', d:0, r:0, s:0, $:10, hp:500, maxHp:500, isWall:true},  // 墙壁：保持10金
   
   // === 进阶塔 - 策略选择 ===
-  cannon: {c:'#F44336', d:40, r:2.5, s:90, $:100, a:1.2},   // 炮塔：AOE群体伤害
-  ice: {c:'#03A9F4', d:8, r:3.0, s:50, $:80, w:0.5},        // 冰塔：减速50%控场核心
-  poison: {c:'#8BC34A', d:12, r:2.5, s:35, $:90, o:8},      // 毒塔：持续伤害
-  trapwall: {c:'#FF5722', d:30, r:0, s:0, $:40, isTrap:true, trapDmg:30},  // 陷阱墙：低成本高回报
+  cannon: {c:'#F44336', d:40, r:2.5, s:90, $:115, a:1.2},   // 炮塔：100→115金
+  ice: {c:'#03A9F4', d:8, r:3.0, s:50, $:90, w:0.5},        // 冰塔：80→90金
+  poison: {c:'#8BC34A', d:12, r:2.5, s:35, $:105, o:8},     // 毒塔：90→105金
+  trapwall: {c:'#FF5722', d:30, r:0, s:0, $:45, isTrap:true, trapDmg:30},  // 陷阱墙：40→45金
   
   // === 高级塔 - 战术核心 ===
-  thunder: {c:'#FFC107', d:35, r:2.8, s:50, $:140, h:4},    // 雷电塔：连锁4目标
-  blocker: {c:'#9C27B0', d:10, r:2.0, s:45, $:120, hp:400, maxHp:400, isBlocker:true},  // 阻拦塔：战术核心
-  teleport: {c:'#E040FB', d:0, r:2.5, s:100, $:180, teleport:true}  // 传送塔：高级战术
+  thunder: {c:'#FFC107', d:35, r:2.8, s:50, $:160, h:4},    // 雷电塔：140→160金
+  blocker: {c:'#9C27B0', d:10, r:2.0, s:45, $:140, hp:400, maxHp:400, isBlocker:true},  // 阻拦塔：120→140金
+  teleport: {c:'#E040FB', d:0, r:2.5, s:100, $:210, teleport:true}  // 传送塔：180→210金
 };
 
 const N = {
@@ -359,12 +360,13 @@ const N = {
   blocker:'阻拦塔', teleport:'传送塔', trapwall:'陷阱墙', wall:'墙壁'
 };
 
-// ========== V2.0 关卡系统 - 12关渐进式设计 ==========
+// ========== V3.1 关卡系统 - 方案A金币调整 ==========
 // 章节结构：入门篇 → 成长篇 → 挑战篇 → 精英篇
 // 难度曲线：前3关教学，后9关逐步挑战
+// V3.1调整：金币适度收紧，增加后期压力
 
 const LEVELS = [
-  // === 第一章：入门篇 - 教学引导 ===
+  // === 第一章：入门篇 - 教学引导（保持宽松）===
   {id:'1-1', name:'初见', waves:3, startGold:600, goldBonus:50, 
    unlock:['wall','archer'], enemies:['normal'],
    desc:'学习建造墙壁和弓箭塔', difficulty:1, chapter:'入门篇'},
@@ -373,46 +375,46 @@ const LEVELS = [
    unlock:['wall','archer','cannon'], enemies:['normal','fast'],
    desc:'应对快速敌人', difficulty:1, chapter:'入门篇'},
    
-  {id:'1-3', name:'冰冻', waves:5, startGold:520, goldBonus:70,
+  {id:'1-3', name:'冰冻', waves:5, startGold:500, goldBonus:70,
    unlock:['wall','archer','cannon','ice'], enemies:['normal','fast'],
    desc:'学习使用冰冻塔', difficulty:2, chapter:'入门篇'},
    
-  // === 第二章：成长篇 - 新机制引入 ===
-  {id:'2-1', name:'坦克', waves:5, startGold:500, goldBonus:80,
+  // === 第二章：成长篇 - 新机制引入（适度收紧）===
+  {id:'2-1', name:'坦克', waves:5, startGold:480, goldBonus:80,
    unlock:['wall','archer','cannon','ice','poison'], enemies:['normal','fast','tank'],
    desc:'面对坦克敌人', difficulty:2, chapter:'成长篇'},
    
-  {id:'2-2', name:'陷阱', waves:6, startGold:480, goldBonus:90,
+  {id:'2-2', name:'陷阱', waves:6, startGold:440, goldBonus:90,
    unlock:['wall','archer','cannon','ice','poison','trapwall'], enemies:['normal','fast','tank'],
    desc:'使用陷阱墙', difficulty:2, chapter:'成长篇'},
    
-  {id:'2-3', name:'侦察', waves:6, startGold:460, goldBonus:100,
+  {id:'2-3', name:'侦察', waves:6, startGold:400, goldBonus:100,
    unlock:['wall','archer','cannon','ice','poison','trapwall'], enemies:['normal','fast','scout'],
    desc:'侦察兵会记住你的布局!', difficulty:3, chapter:'成长篇'},
    
-  // === 第三章：挑战篇 - 综合策略 ===
-  {id:'3-1', name:'阻拦', waves:7, startGold:440, goldBonus:120,
+  // === 第三章：挑战篇 - 综合策略（明显压力）===
+  {id:'3-1', name:'阻拦', waves:7, startGold:380, goldBonus:120,
    unlock:['wall','archer','cannon','ice','poison','trapwall','blocker'], enemies:['normal','fast','tank','destroyer'],
    desc:'破坏者会攻击墙壁!', difficulty:3, chapter:'挑战篇'},
    
-  {id:'3-2', name:'雷电', waves:7, startGold:420, goldBonus:140,
+  {id:'3-2', name:'雷电', waves:7, startGold:350, goldBonus:140,
    unlock:['wall','archer','cannon','ice','poison','trapwall','blocker','thunder'], enemies:['normal','fast','shifter'],
    desc:'变形怪会切换属性', difficulty:4, chapter:'挑战篇'},
    
-  {id:'3-3', name:'混合', waves:8, startGold:400, goldBonus:160,
+  {id:'3-3', name:'混合', waves:8, startGold:320, goldBonus:160,
    unlock:['all'], enemies:['normal','fast','tank','scout'],
    desc:'综合挑战', difficulty:4, chapter:'挑战篇'},
    
-  // === 第四章：精英篇 - 极限挑战 ===
-  {id:'4-1', name:'精英', waves:9, startGold:380, goldBonus:200,
+  // === 第四章：精英篇 - 极限挑战（精打细算）===
+  {id:'4-1', name:'精英', waves:9, startGold:300, goldBonus:200,
    unlock:['all'], enemies:['normal','fast','tank','scout','destroyer'],
    desc:'敌人全面进攻', difficulty:5, chapter:'精英篇'},
    
-  {id:'4-2', name:'噩梦', waves:10, startGold:360, goldBonus:250,
+  {id:'4-2', name:'噩梦', waves:10, startGold:280, goldBonus:250,
    unlock:['all'], enemies:['normal','fast','tank','scout','shifter','destroyer'],
    desc:'极限挑战', difficulty:5, chapter:'精英篇'},
    
-  {id:'4-3', name:'终极', waves:12, startGold:350, goldBonus:300, boss:true,
+  {id:'4-3', name:'终极', waves:12, startGold:250, goldBonus:300, boss:true,
    unlock:['all'], enemies:['all'],
    desc:'BOSS战!', difficulty:5, chapter:'精英篇'}
 ];
@@ -430,20 +432,20 @@ let aiMemory = {
   destroyerAttacks: 0   // 破坏者攻击次数
 };
 
-// ========== V2.0 敌人系统 - 精心平衡的数值 ==========
+// ========== V3.1 敌人系统 - 方案A血量调整 ==========
 // 设计原则：每种敌人有独特定位，血量/速度/金币成比例
-// V2.1: 速度降低到30%，游戏更易上手
+// V3.1调整：血量+20%，增加挑战性
 
 const ENEMY_TYPES = {
-  // === 基础敌人 ===
-  normal: {hp:60, color:'#8BC34A', size:0.42, gold:8, speed:0.50},      // 普通怪：标准参考
-  fast: {hp:35, color:'#42A5F5', size:0.35, gold:10, speed:0.80},       // 快速怪：血少跑得快
-  tank: {hp:200, color:'#78909C', size:0.55, gold:25, speed:0.25},      // 坦克：血厚跑得慢
+  // === 基础敌人（血量+20%）===
+  normal: {hp:72, color:'#8BC34A', size:0.42, gold:8, speed:0.50},      // 普通怪：60→72
+  fast: {hp:42, color:'#42A5F5', size:0.35, gold:10, speed:0.80},       // 快速怪：35→42
+  tank: {hp:240, color:'#78909C', size:0.55, gold:25, speed:0.25},      // 坦克：200→240
   
-  // === 特殊敌人 ===
-  scout: {hp:70, color:'#FFD700', size:0.38, gold:15, speed:0.65, isScout:true},        // 侦察兵：记住布局
-  destroyer: {hp:280, color:'#D32F2F', size:0.52, gold:30, speed:0.20, isDestroyer:true, atkDmg:80},  // 破坏者：攻击墙壁
-  shifter: {hp:150, color:'#9C27B0', size:0.45, gold:20, speed:0.35, isShifter:true}    // 变形怪：切换属性
+  // === 特殊敌人（血量+20%）===
+  scout: {hp:84, color:'#FFD700', size:0.38, gold:15, speed:0.65, isScout:true},        // 侦察兵：70→84
+  destroyer: {hp:336, color:'#D32F2F', size:0.52, gold:30, speed:0.20, isDestroyer:true, atkDmg:80},  // 破坏者：280→336
+  shifter: {hp:180, color:'#9C27B0', size:0.45, gold:20, speed:0.35, isShifter:true}    // 变形怪：150→180
 };
 
 // ========== 存档系统 ==========

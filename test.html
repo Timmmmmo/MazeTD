@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MazeTD 自动化测试</title>
+<style>
+body{font-family:monospace;background:#1a1a2e;color:#eee;padding:20px}
+h1{color:#FFD700}
+.test-suite{margin:20px 0;padding:15px;background:#16213e;border-radius:8px}
+.test-case{padding:8px;margin:5px 0;border-radius:4px}
+.pass{background:#0a3d0a;border:1px solid #0f0}
+.fail{background:#3d0a0a;border:1px solid #f00}
+.pending{background:#3d3d0a;border:1px solid #ff0}
+.stats{font-size:18px;margin:20px 0}
+.stats span{margin-right:20px}
+#pass{color:#0f0}
+#fail{color:#f00}
+#pending{color:#ff0}
+</style>
+</head>
+<body>
+<h1>🎮 MazeTD 自动化测试</h1>
+<div class="stats">
+  <span>通过: <b id="pass">0</b></span>
+  <span>失败: <b id="fail">0</b></span>
+  <span>待定: <b id="pending">0</b></span>
+</div>
+<div id="results"></div>
+<iframe id="game-frame" src="index.html" style="display:none"></iframe>
+
+<script>
+// 测试框架
+class Tester {
+  constructor() {
+    this.results = [];
+    this.pass = 0;
+    this.fail = 0;
+    this.pending = 0;
+  }
+
+  async test(name, fn) {
+    const div = document.createElement('div');
+    div.className = 'test-case pending';
+    div.innerHTML = `⏳ ${name}`;
+    document.getElementById('results').appendChild(div);
+    
+    try {
+      const result = await fn();
+      if (result.pass) {
+        div.className = 'test-case pass';
+        div.innerHTML = `✓ ${name}`;
+        this.pass++;
+      } else {
+        div.className = 'test-case fail';
+        div.innerHTML = `✗ ${name}<br><small>${result.message}</small>`;
+        this.fail++;
+      }
+    } catch (e) {
+      div.className = 'test-case fail';
+      div.innerHTML = `✗ ${name}<br><small>异常: ${e.message}</small>`;
+      this.fail++;
+    }
+    
+    this.updateStats();
+  }
+
+  updateStats() {
+    document.getElementById('pass').textContent = this.pass;
+    document.getElementById('fail').textContent = this.fail;
+    document.getElementById('pending').textContent = document.querySelectorAll('.pending').length;
+  }
+}
+
+// 等待函数
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 获取游戏实例
+function getGame() {
+  const frame = document.getElementById('game-frame');
+  return frame.contentWindow;
+}
+
+// 测试套件
+async function runTests() {
+  const t = new Tester();
+  
+  // 等待游戏加载
+  await wait(2000);
+  
+  // ===== T01: 游戏启动 =====
+  await t.test('T01-游戏启动', async () => {
+    const game = getGame();
+    if (!game) return {pass: false, message: '游戏窗口未找到'};
+    if (!game.document.title.includes('迷宫塔防')) {
+      return {pass: false, message: '标题不正确'};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T02: 初始状态 =====
+  await t.test('T02-初始状态', async () => {
+    const game = getGame();
+    if (typeof game.gold === 'undefined') {
+      return {pass: false, message: '金币变量未定义'};
+    }
+    if (game.gold < 500) {
+      return {pass: false, message: `初始金币过低: ${game.gold}`};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T03: 网格初始化 =====
+  await t.test('T03-网格初始化', async () => {
+    const game = getGame();
+    if (!game.grid || !game.grid.length) {
+      return {pass: false, message: '网格未初始化'};
+    }
+    if (game.grid.length < 5) {
+      return {pass: false, message: `网格行数不足: ${game.grid.length}`};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T04: 路径计算 =====
+  await t.test('T04-路径计算', async () => {
+    const game = getGame();
+    if (!game.path) {
+      return {pass: false, message: '路径未计算'};
+    }
+    if (game.path.length < 5) {
+      return {pass: false, message: `路径过短: ${game.path.length}`};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T05: 塔类型配置 =====
+  await t.test('T05-塔类型配置', async () => {
+    const game = getGame();
+    if (!game.T) return {pass: false, message: '塔配置未定义'};
+    const types = Object.keys(game.T);
+    if (types.length < 3) {
+      return {pass: false, message: `塔类型不足: ${types.length}`};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T06: 敌人类型配置 =====
+  await t.test('T06-敌人类型配置', async () => {
+    const game = getGame();
+    if (!game.ENEMY_TYPES) return {pass: false, message: '敌人配置未定义'};
+    const types = Object.keys(game.ENEMY_TYPES);
+    if (types.length < 2) {
+      return {pass: false, message: `敌人类型不足: ${types.length}`};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T07: Canvas初始化 =====
+  await t.test('T07-Canvas初始化', async () => {
+    const game = getGame();
+    if (!game.cv) return {pass: false, message: 'Canvas未初始化'};
+    if (game.cv.width < 100 || game.cv.height < 100) {
+      return {pass: false, message: `Canvas尺寸异常: ${game.cv.width}x${game.cv.height}`};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T08: 关卡配置 =====
+  await t.test('T08-关卡配置', async () => {
+    const game = getGame();
+    if (!game.LEVELS) return {pass: false, message: '关卡配置未定义'};
+    if (game.LEVELS.length < 3) {
+      return {pass: false, message: `关卡数量不足: ${game.LEVELS.length}`};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T09: 存档功能 =====
+  await t.test('T09-存档功能', async () => {
+    const game = getGame();
+    if (typeof game.saveProgress !== 'function') {
+      return {pass: false, message: 'saveProgress函数未定义'};
+    }
+    if (typeof game.loadProgress !== 'function') {
+      return {pass: false, message: 'loadProgress函数未定义'};
+    }
+    return {pass: true};
+  });
+  
+  // ===== T10: 核心函数存在 =====
+  await t.test('T10-核心函数存在', async () => {
+    const game = getGame();
+    const funcs = ['findPath', 'place', 'del', 'spawnWave', 'loop', 'render'];
+    for (const f of funcs) {
+      if (typeof game[f] !== 'function') {
+        return {pass: false, message: `${f}函数未定义`};
+      }
+    }
+    return {pass: true};
+  });
+  
+  console.log('测试完成！');
+}
+
+// 启动测试
+runTests();
+</script>
+</body>
+</html>
