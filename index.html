@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V2.0 - 全新数值系统</title>
+<title>迷宫塔防 V2.1 - 敌人速度降低+智能破墙</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -250,24 +250,20 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V2.0</h1>
-<h2>全新数值系统 · 12关卡挑战</h2>
+<h1>🏰 迷宫塔防 V2.1</h1>
+<h2>敌人速度降低 · 智能破墙AI</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V2.0 重大更新</h3>
-<p><b class="new">数值重制</b> - 参考腾讯TOP塔防设计</p>
-<p><b class="new">12关卡</b> - 4章节渐进式挑战</p>
-<p><b class="new">经济平衡</b> - 资源约束，策略选择</p>
-<p><b>章节设计</b></p>
-<p>· 入门篇: 学习基础操作</p>
-<p>· 成长篇: 掌握策略组合</p>
-<p>· 挑战篇: 综合策略运用</p>
-<p>· 精英篇: 极限挑战BOSS战</p>
-<p><b>塔种定位</b></p>
-<p>· 基础塔: 弓箭/墙壁</p>
-<p>· 进阶塔: 炮塔/冰冻/毒塔</p>
-<p>· 高级塔: 雷电/阻拦/传送</p>
-<p style="margin-top:8px;color:#888">💡 敌人会自动攻击堵路的墙壁!</p>
+<h3>🆕 V2.1 重大更新</h3>
+<p><b class="new">速度调整</b> - 敌人移动速度降低到30%</p>
+<p><b class="new">智能破墙</b> - 敌人会攻击堵路的墙壁和塔!</p>
+<p><b class="new">路径重算</b> - 破墙后自动寻找最短路径</p>
+<p><b>策略提示</b></p>
+<p>· 敌人会优先寻找无障碍路径</p>
+<p>· 被堵住时会攻击最近的障碍物</p>
+<p>· 破坏者攻击速度更快，伤害更高</p>
+<p>· 陷阱墙会对攻击者造成伤害</p>
+<p style="margin-top:8px;color:#888">💡 封堵迷宫会迫使敌人攻击，争取时间!</p>
 </div>
 </div>
 <div id="game">
@@ -434,17 +430,18 @@ let aiMemory = {
 
 // ========== V2.0 敌人系统 - 精心平衡的数值 ==========
 // 设计原则：每种敌人有独特定位，血量/速度/金币成比例
+// V2.1: 速度降低到30%，游戏更易上手
 
 const ENEMY_TYPES = {
   // === 基础敌人 ===
-  normal: {hp:60, color:'#8BC34A', size:0.42, gold:8, speed:1.0},      // 普通怪：标准参考
-  fast: {hp:35, color:'#42A5F5', size:0.35, gold:10, speed:1.6},       // 快速怪：血少跑得快
-  tank: {hp:200, color:'#78909C', size:0.55, gold:25, speed:0.5},      // 坦克：血厚跑得慢
+  normal: {hp:60, color:'#8BC34A', size:0.42, gold:8, speed:0.30},      // 普通怪：标准参考
+  fast: {hp:35, color:'#42A5F5', size:0.35, gold:10, speed:0.48},       // 快速怪：血少跑得快
+  tank: {hp:200, color:'#78909C', size:0.55, gold:25, speed:0.15},      // 坦克：血厚跑得慢
   
   // === 特殊敌人 ===
-  scout: {hp:70, color:'#FFD700', size:0.38, gold:15, speed:1.3, isScout:true},        // 侦察兵：记住布局
-  destroyer: {hp:280, color:'#D32F2F', size:0.52, gold:30, speed:0.4, isDestroyer:true, atkDmg:80},  // 破坏者：攻击墙壁
-  shifter: {hp:150, color:'#9C27B0', size:0.45, gold:20, speed:0.7, isShifter:true}    // 变形怪：切换属性
+  scout: {hp:70, color:'#FFD700', size:0.38, gold:15, speed:0.39, isScout:true},        // 侦察兵：记住布局
+  destroyer: {hp:280, color:'#D32F2F', size:0.52, gold:30, speed:0.12, isDestroyer:true, atkDmg:80},  // 破坏者：攻击墙壁
+  shifter: {hp:150, color:'#9C27B0', size:0.45, gold:20, speed:0.21, isShifter:true}    // 变形怪：切换属性
 };
 
 // ========== 初始化 ==========
@@ -495,7 +492,8 @@ function initGrid() {
   updateTool();
 }
 
-// ========== A*寻路 - 支持AI记忆 ==========
+// ========== A*寻路 - 支持攻击堵路障碍物 ==========
+// V2.1: 敌人可以攻击堵路的墙壁/塔，寻找最短路径
 function findPath(avoidZones=[]) {
   if(!grid) return null;
   
@@ -512,7 +510,9 @@ function findPath(avoidZones=[]) {
       const nx = x+dx, ny = y+dy;
       const k = nx+','+ny;
       
-      if(nx>=0 && nx<COLS && ny>=0 && ny<ROWS && grid[ny][nx]===0 && !v[k]) {
+      // V2.1: 允许通过有障碍物的地方（敌人会攻击）
+      // 但优先选择无障碍的路径
+      if(nx>=0 && nx<COLS && ny>=0 && ny<ROWS && !v[k]) {
         // 检查是否在避开区域内
         let inDanger = false;
         for(const zone of avoidZones) {
@@ -521,9 +521,15 @@ function findPath(avoidZones=[]) {
             break;
           }
         }
+        
+        // V2.1: 如果是障碍物（墙/塔），仍然可以通过，但标记为需要攻击
+        const isBlocked = grid[ny][nx] !== 0;
+        
         if(!inDanger) {
           v[k] = 1;
-          q.push([nx, ny, p.concat([[x,y]])]);
+          // 如果路径被堵，标记需要攻击
+          const newPath = p.concat([[x, y, isBlocked]]);
+          q.push([nx, ny, newPath]);
         }
       }
     }
@@ -955,16 +961,106 @@ function loop() {
     if(e.sl > 0) { sp *= 0.4; e.sl--; }
     if(e.dt > 0) { e.hp -= e.dv; e.dt--; }
     
-    // 路径移动 - 确保path有效
-    e.pi += sp/60;
+    // V2.1: 敌人攻击堵路障碍物逻辑
+    const offsetX = ox !== undefined ? ox : 0;
+    const offsetY = oy !== undefined ? oy : 0;
+    
+    // 计算当前位置和目标位置
     let usePath = e.customPath || path;
     if(!usePath || usePath.length === 0) {
       usePath = findPath() || [[ENTRY.x, ENTRY.y], [EXIT.x, EXIT.y]];
     }
+    
+    // 检查下一格是否被堵
+    const nextIdx = Math.floor(e.pi) + 1;
+    if(nextIdx < usePath.length) {
+      const nextPos = usePath[nextIdx];
+      const nx = nextPos[0];
+      const ny = nextPos[1];
+      
+      // 如果下一格有障碍物（墙/塔），攻击它
+      if(grid[ny] && grid[ny][nx] !== 0) {
+        e.attacking = true;
+        e.attackTimer = (e.attackTimer || 0) + 1;
+        
+        // 破坏者攻击更快
+        const attackSpeed = e.isDestroyer ? 40 : 80;
+        const damage = e.isDestroyer ? (e.atkDmg || 80) : 30;
+        
+        if(e.attackTimer >= attackSpeed) {
+          e.attackTimer = 0;
+          
+          // 找到这个位置的塔
+          let targetTower = null;
+          for(const t of towers) {
+            if(t.x === nx && t.y === ny) {
+              targetTower = t;
+              break;
+            }
+          }
+          
+          if(targetTower) {
+            // 如果是阻拦塔或有血量的塔，扣血
+            if(targetTower.hp !== undefined) {
+              targetTower.hp -= damage;
+              spawnP(offsetX + (nx+0.5)*CS, offsetY + (ny+0.5)*CS, '#FF5722', 8);
+              dmgTexts.push({x:offsetX+(nx+0.5)*CS, y:offsetY+(ny+0.5)*CS-30, txt:'-'+damage, co:'#FF5722', life:30});
+              
+              // 塔被摧毁
+              if(targetTower.hp <= 0) {
+                grid[ny][nx] = 0;
+                const tIdx = towers.indexOf(targetTower);
+                if(tIdx >= 0) towers.splice(tIdx, 1);
+                spawnP(offsetX+(nx+0.5)*CS, offsetY+(ny+0.5)*CS, targetTower.c || '#78909C', 15);
+                showTip('💥 敌人摧毁了' + (N[targetTower.type] || '塔') + '!');
+                
+                // 重新计算路径
+                path = findPath();
+                e.customPath = null;
+                e.attacking = false;
+              }
+            } else {
+              // 普通塔直接摧毁
+              grid[ny][nx] = 0;
+              const tIdx = towers.indexOf(targetTower);
+              if(tIdx >= 0) towers.splice(tIdx, 1);
+              spawnP(offsetX+(nx+0.5)*CS, offsetY+(ny+0.5)*CS, targetTower.c || '#78909C', 15);
+              showTip('💥 敌人摧毁了' + (N[targetTower.type] || '塔') + '!');
+              path = findPath();
+              e.customPath = null;
+              e.attacking = false;
+            }
+            
+            // 陷阱墙触发伤害
+            if(targetTower.isTrap) {
+              e.hp -= targetTower.trapDmg || 30;
+              dmgTexts.push({x:e.x, y:e.y-30, txt:'-'+targetTower.trapDmg, co:'#FF5722', life:30});
+            }
+          } else {
+            // 纯墙壁，直接摧毁
+            grid[ny][nx] = 0;
+            spawnP(offsetX+(nx+0.5)*CS, offsetY+(ny+0.5)*CS, '#78909C', 10);
+            showTip('💥 敌人摧毁了墙壁!');
+            path = findPath();
+            e.customPath = null;
+            e.attacking = false;
+          }
+          
+          aiMemory.destroyerAttacks++;
+          updateAIInfo();
+        }
+        
+        // 攻击时不移动
+        continue;
+      } else {
+        e.attacking = false;
+        e.attackTimer = 0;
+      }
+    }
+    
+    // 路径移动
+    e.pi += sp/60;
     const idx = Math.min(Math.floor(e.pi), usePath.length-1);
-    // 确保ox, oy已初始化
-    const offsetX = ox !== undefined ? ox : 0;
-    const offsetY = oy !== undefined ? oy : 0;
     e.x = offsetX + (usePath[idx][0]+0.5)*CS;
     e.y = offsetY + (usePath[idx][1]+0.5)*CS;
     
@@ -999,82 +1095,6 @@ function loop() {
       updateTool();
       continue;
     }
-    
-    // V14: 所有敌人都会智能寻路破坏迷宫
-    // 检测是否被墙堵住
-    const gx = Math.floor((e.x-ox)/CS);
-    const gy = Math.floor((e.y-oy)/CS);
-    let pathBlocked = false;
-    
-    // 检查当前位置是否有墙阻挡
-    if(grid[gy] && grid[gy][gx] === 1) {
-      pathBlocked = true;
-    }
-    
-    // 如果路径被堵，寻找最近的墙壁并攻击
-    if(pathBlocked || !e.customPath) {
-      let nearestWall = null;
-      let minDist = Infinity;
-      
-      // 搜索周围3格范围内的墙壁
-      for(let dx=-3; dx<=3; dx++) {
-        for(let dy=-3; dy<=3; dy++) {
-          const nx = gx+dx, ny = gy+dy;
-          if(nx>0 && nx<COLS-1 && ny>0 && ny<ROWS-1 && grid[ny] && grid[ny][nx]===1) {
-            const dist = Math.abs(dx) + Math.abs(dy);
-            // 优先攻击能打通最短路径的墙
-            if(dist < minDist) {
-              minDist = dist;
-              nearestWall = {x: nx, y: ny};
-            }
-          }
-        }
-      }
-      
-      if(nearestWall) {
-        e.destroying = nearestWall;
-        e.destroyTimer = (e.destroyTimer || 0) + 1;
-        
-        // 破坏者攻击更快，普通敌人攻击较慢
-        const attackSpeed = e.isDestroyer ? 60 : 120;
-        
-        if(e.destroyTimer >= attackSpeed) {
-          e.destroyTimer = 0;
-          aiMemory.destroyerAttacks++;
-          
-          // 检查是否是陷阱墙
-          let trapIdx = -1;
-          for(let t=0; t<towers.length; t++) {
-            if(towers[t].x===nearestWall.x && towers[t].y===nearestWall.y && towers[t].isTrap) {
-              trapIdx = t;
-              break;
-            }
-          }
-          
-          // 陷阱墙触发伤害
-          if(trapIdx >= 0) {
-            e.hp -= towers[trapIdx].trapDmg;
-            dmgTexts.push({x:e.x, y:e.y-30, txt:'-'+towers[trapIdx].trapDmg, co:'#FF5722', life:30});
-          }
-          
-          // 破坏墙壁
-          grid[nearestWall.y][nearestWall.x] = 0;
-          if(trapIdx >= 0) towers.splice(trapIdx, 1);
-          path = findPath();
-          
-          // 更新所有敌人的路径
-          for(const en of enemies) {
-            en.customPath = null;
-          }
-          
-          spawnP(ox+(nearestWall.x+0.5)*CS, oy+(nearestWall.y+0.5)*CS, '#78909C', 10);
-          showTip('💥 ' + (e.isDestroyer ? '破坏者' : '敌人') + '摧毁了墙壁!');
-          updateAIInfo();
-        }
-      }
-    }
-    
-    // 陷阱墙伤害 - 已在上面的破坏逻辑中处理
   }
   
   // 波次结束检测
