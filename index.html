@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V2.1 - 敌人速度降低+智能破墙</title>
+<title>迷宫塔防 V3.0 - 全面优化</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -250,20 +250,21 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V2.1</h1>
-<h2>敌人速度降低 · 智能破墙AI</h2>
-<button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
+<h1>🏰 迷宫塔防 V3.0</h1>
+<h2>全面优化 · 存档系统 · 教学引导</h2>
+<button class="menu-btn" onclick="startGame()">▶ 继续游戏</button>
 <div class="guide">
-<h3>🆕 V2.1 重大更新</h3>
-<p><b class="new">速度调整</b> - 敌人移动速度降低到30%</p>
-<p><b class="new">智能破墙</b> - 敌人会攻击堵路的墙壁和塔!</p>
-<p><b class="new">路径重算</b> - 破墙后自动寻找最短路径</p>
+<h3>🆕 V3.0 重大更新</h3>
+<p><b class="new">速度调整</b> - 敌人速度恢复到50%</p>
+<p><b class="new">智能破墙</b> - 普通敌人3秒/破坏者1.5秒</p>
+<p><b class="new">攻击进度条</b> - 破墙时显示红色进度</p>
+<p><b class="new">存档系统</b> - 自动保存通关进度</p>
+<p><b class="new">教学引导</b> - 首关教学提示</p>
 <p><b>策略提示</b></p>
-<p>· 敌人会优先寻找无障碍路径</p>
-<p>· 被堵住时会攻击最近的障碍物</p>
-<p>· 破坏者攻击速度更快，伤害更高</p>
-<p>· 陷阱墙会对攻击者造成伤害</p>
-<p style="margin-top:8px;color:#888">💡 封堵迷宫会迫使敌人攻击，争取时间!</p>
+<p>· 封堵迷宫可迫使敌人攻击争取时间</p>
+<p>· 陷阱墙会对攻击者造成反伤</p>
+<p>· 墙壁有血条，可被摧毁</p>
+<p>· 破坏者是真正的威胁!</p>
 </div>
 </div>
 <div id="game">
@@ -420,6 +421,7 @@ const LEVELS = [
 let cv, ctx, W, H, ox, oy, grid, path, towers=[], enemies=[], bullets=[], parts=[], dmgTexts=[], hist=[];
 let gold, hp, wave, kills, cur='archer', tool='place', fighting=false, inited=false;
 let currentLevel=null, curLevelIdx=0;
+let tutorialStep=0, tutorialShown=false;
 
 // ========== AI进化系统 ==========
 let aiMemory = {
@@ -434,15 +436,56 @@ let aiMemory = {
 
 const ENEMY_TYPES = {
   // === 基础敌人 ===
-  normal: {hp:60, color:'#8BC34A', size:0.42, gold:8, speed:0.30},      // 普通怪：标准参考
-  fast: {hp:35, color:'#42A5F5', size:0.35, gold:10, speed:0.48},       // 快速怪：血少跑得快
-  tank: {hp:200, color:'#78909C', size:0.55, gold:25, speed:0.15},      // 坦克：血厚跑得慢
+  normal: {hp:60, color:'#8BC34A', size:0.42, gold:8, speed:0.50},      // 普通怪：标准参考
+  fast: {hp:35, color:'#42A5F5', size:0.35, gold:10, speed:0.80},       // 快速怪：血少跑得快
+  tank: {hp:200, color:'#78909C', size:0.55, gold:25, speed:0.25},      // 坦克：血厚跑得慢
   
   // === 特殊敌人 ===
-  scout: {hp:70, color:'#FFD700', size:0.38, gold:15, speed:0.39, isScout:true},        // 侦察兵：记住布局
-  destroyer: {hp:280, color:'#D32F2F', size:0.52, gold:30, speed:0.12, isDestroyer:true, atkDmg:80},  // 破坏者：攻击墙壁
-  shifter: {hp:150, color:'#9C27B0', size:0.45, gold:20, speed:0.21, isShifter:true}    // 变形怪：切换属性
+  scout: {hp:70, color:'#FFD700', size:0.38, gold:15, speed:0.65, isScout:true},        // 侦察兵：记住布局
+  destroyer: {hp:280, color:'#D32F2F', size:0.52, gold:30, speed:0.20, isDestroyer:true, atkDmg:80},  // 破坏者：攻击墙壁
+  shifter: {hp:150, color:'#9C27B0', size:0.45, gold:20, speed:0.35, isShifter:true}    // 变形怪：切换属性
 };
+
+// ========== 存档系统 ==========
+function saveProgress() {
+  try {
+    localStorage.setItem('mazeTD_v3', JSON.stringify({curLevelIdx, highScores: getHighScores()}));
+  } catch(e) {}
+}
+function loadProgress() {
+  try {
+    return JSON.parse(localStorage.getItem('mazeTD_v3'));
+  } catch(e) { return null; }
+}
+function getHighScores() {
+  try { return JSON.parse(localStorage.getItem('mazeTD_scores')) || {}; } catch(e) { return {}; }
+}
+function saveScore(levelId, stars) {
+  const scores = getHighScores();
+  if(!scores[levelId] || scores[levelId] < stars) {
+    scores[levelId] = stars;
+    try { localStorage.setItem('mazeTD_scores', JSON.stringify(scores)); } catch(e) {}
+  }
+}
+
+// ========== 教学系统 ==========
+const TUTORIALS = {
+  '1-1': [
+    {text:'👆 点击网格放置墙壁', highlight:'grid'},
+    {text:'🏹 然后选择弓箭塔攻击敌人', highlight:'tower-archer'},
+    {text:'⚔️ 点击"开战"开始!', highlight:'btn-fight'}
+  ]
+};
+
+function showTutorial() {
+  if(tutorialShown || !currentLevel) return;
+  const steps = TUTORIALS[currentLevel.id];
+  if(!steps || tutorialStep >= steps.length) { tutorialShown = true; return; }
+  const step = steps[tutorialStep];
+  showTip(step.text);
+  tutorialStep++;
+  if(tutorialStep >= steps.length) tutorialShown = true;
+}
 
 // ========== 初始化 ==========
 function initCanvas() {
@@ -646,6 +689,9 @@ function touch(e) {
 }
 
 function act(mx, my) {
+  // 每次操作触发下一步教学
+  if(!tutorialShown) showTutorial();
+  
   const x = Math.floor((mx-ox)/CS);
   const y = Math.floor((my-oy)/CS);
   
@@ -983,8 +1029,8 @@ function loop() {
         e.attacking = true;
         e.attackTimer = (e.attackTimer || 0) + 1;
         
-        // 破坏者攻击更快
-        const attackSpeed = e.isDestroyer ? 40 : 80;
+        // 攻击速度：破坏者1.5秒(90帧)，普通敌人3秒(180帧)
+        const attackSpeed = e.isDestroyer ? 90 : 180;
         const damage = e.isDestroyer ? (e.atkDmg || 80) : 30;
         
         if(e.attackTimer >= attackSpeed) {
@@ -1381,6 +1427,14 @@ function render() {
     ctx.lineWidth = 2;
     ctx.stroke();
     
+    // 墙壁血条
+    if(t.isWall && t.hp < t.maxHp) {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(tx-CS*0.32, ty-CS*0.5, CS*0.64, 5);
+      ctx.fillStyle = t.hp/t.maxHp > 0.5 ? '#00E676' : t.hp/t.maxHp > 0.25 ? '#FF9100' : '#FF1744';
+      ctx.fillRect(tx-CS*0.32, ty-CS*0.5, CS*0.64*(t.hp/t.maxHp), 5);
+    }
+    
     // 阻拦塔血条
     if(t.isBlocker && t.hp < t.maxHp) {
       ctx.fillStyle = '#1a1a1a';
@@ -1621,6 +1675,16 @@ function drawTowerIcon(ctx, type, x, y, r) {
     const hr = Math.max(0, e.hp/e.mh);
     ctx.fillStyle = hr>0.5 ? '#00E676' : hr>0.25 ? '#FF9100' : '#FF1744';
     ctx.fillRect(e.x-sz, e.y-sz-8, sz*2*hr, 5);
+    
+    // 攻击进度条（正在破墙时显示）
+    if(e.attacking && e.attackTimer > 0) {
+      const atkMax = e.isDestroyer ? 90 : 180;
+      const atkPct = e.attackTimer / atkMax;
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(e.x-sz, e.y+sz+4, sz*2, 4);
+      ctx.fillStyle = '#FF5722';
+      ctx.fillRect(e.x-sz, e.y+sz+4, sz*2*atkPct, 4);
+    }
   }
 
 // 敌人图标绘制函数
@@ -1776,13 +1840,16 @@ function updateUI() {
 
 // ========== 游戏流程 ==========
 function startGame() {
-  curLevelIdx = 0;
+  const saved = loadProgress();
+  curLevelIdx = saved ? saved.curLevelIdx : 0;
   currentLevel = LEVELS[curLevelIdx];
   gold = currentLevel.startGold;
   hp = 20;
   wave = 0;
   kills = 0;
   fighting = false;
+  tutorialStep = 0;
+  tutorialShown = false;
   
   document.getElementById('menu').style.display = 'none';
   document.getElementById('game').style.display = 'flex';
@@ -1794,6 +1861,9 @@ function startGame() {
   updateUI();
   updateAIInfo();
   render();
+  
+  // 首关显示教学
+  setTimeout(showTutorial, 500);
 }
 
 function gameOver() {
@@ -1807,6 +1877,8 @@ function levelComplete() {
   fighting = false;
   const stars = hp >= 18 ? 3 : hp >= 12 ? 2 : 1;
   const bonus = currentLevel.goldBonus;
+  saveScore(currentLevel.id, stars);
+  saveProgress();
   document.getElementById('stars').textContent = '⭐'.repeat(stars);
   document.getElementById('bonus-gold').textContent = bonus;
   document.getElementById('level-complete').style.display = 'flex';
@@ -1821,12 +1893,16 @@ function nextLevel() {
   wave = 0;
   kills = 0;
   fighting = false;
+  tutorialStep = 0;
+  tutorialShown = false;
   
   document.getElementById('level-complete').style.display = 'none';
   initGrid();
   updateUI();
   updateAIInfo();
   render();
+  saveProgress();
+  setTimeout(showTutorial, 500);
 }
 
 // 初始化塔按钮图标
