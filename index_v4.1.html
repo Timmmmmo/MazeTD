@@ -213,8 +213,6 @@ canvas{display:block;width:100%;height:100%}
 #btn-clear{background:linear-gradient(135deg,#37474F,#263238);color:#fff}
 #btn-share{background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff}
 #btn-help{background:linear-gradient(135deg,#7B1FA2,#4A148C);color:#fff}
-#upgrade-popup button:hover{transform:scale(1.02)}
-#achieve-btn:hover{transform:scale(1.1)}
 
 /* 菜单 - 沉浸式背景 */
 #menu{
@@ -278,9 +276,9 @@ canvas{display:block;width:100%;height:100%}
 <p>建造墙壁引导敌人路线，再用防御塔消灭它们！</p>
 <p>不同防御塔有不同效果，合理搭配才能通关！</p>
 <p><b>⚠️ 注意</b>：有些怪物会<b class="bad">攻击墙壁</b>！</p>
-<h3>🆕 V4.0 V4.1</h3>
-<p><b class="new">🎵 TOWER UP</b> - 沉浸式游戏体验</p>
-<p><b class="new">📖 ACHIEVE</b> - 箭头引导，上手更快</p>
+<h3>🆕 V4.0 新功能</h3>
+<p><b class="new">🎵 音效BGM</b> - 沉浸式游戏体验</p>
+<p><b class="new">📖 动画教学</b> - 箭头引导，上手更快</p>
 <p><b class="new">🏆 排行榜</b> - 和好友一较高下</p>
 </div>
 </div>
@@ -402,20 +400,6 @@ const N = {
   archer:'弓箭塔', cannon:'炮塔', ice:'冰冻塔', thunder:'雷电塔', poison:'毒塔',
   blocker:'阻拦塔', teleport:'传送塔', trapwall:'陷阱墙', wall:'墙壁'
 };
-// V4.1 塔升级配置
-const TIER_CFG = {
-  archer:   {d:[1,1.3,1.6],r:[1,1.1,1.2],s:[1,0.85,0.72],maxTier:3},
-  cannon:   {d:[1,1.35,1.7],r:[1,1.15,1.25],s:[1,0.82,0.68],maxTier:3},
-  ice:      {d:[1,1.3,1.6],r:[1,1.12,1.22],s:[1,0.8,0.65],w:[0.5,0.62,0.72],maxTier:3},
-  thunder:  {d:[1,1.3,1.6],r:[1,1.15,1.25],s:[1,0.82,0.68],h:[4,5,6],maxTier:3},
-  poison:   {d:[1,1.3,1.6],r:[1,1.1,1.2],s:[1,0.8,0.65],o:[8,11,15],maxTier:3},
-  blocker:  {d:[1,1.4,1.8],hp:[400,650,1000],maxTier:3},
-  teleport: {d:[1,1,1],r:[1,1.2,1.4],s:[1,0.8,0.65],maxTier:3},
-  trapwall: {d:[30,50,80],maxTier:3},
-  wall:     {hp:[500,900,1500],maxTier:3},
-};
-const TIER_COLOR = ['#FFB300','#FF6D00','#FF1744'];
-const TIER_STAR  = ['1星','2星','3星'];
 
 // ========== V3.1 关卡系统 - 方案A金币调整 ==========
 // 章节结构：入门篇 → 成长篇 → 挑战篇 → 精英篇
@@ -549,29 +533,6 @@ function stopBGM() {
   if(bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; }
 }
 
-function toggleAchievePanel() {
-  var panel = document.getElementById('achieve-panel');
-  var list = document.getElementById('achieve-list');
-  if(!panel) return;
-  if(panel.style.display === 'none' || !panel.style.display) {
-    panel.style.display = 'flex';
-    var unlocked = Object.keys(achievementState).length;
-    var html = '<div style="text-align:center;color:#FFB300;font-size:12px;margin-bottom:10px">UNLOCKED ' + unlocked + '/' + ACHIEVEMENTS.length + '<\/'div>';
-    ACHIEVEMENTS.forEach(function(a) {
-      var done = !!achievementState[a.id];
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);' + (done?'':'opacity:0.35') + '">';
-      html += '<span style="font-size:22px">' + (done?'DONE':'LOCK') + '<\/'span>';
-      html += '<div style="flex:1">';
-      html += '<div style="font-size:13px;color:' + (done?'#FFB300':'#666') + ';font-weight:600">' + a.icon + ' ' + a.name + '<\/'div>';
-      html += '<div style="font-size:11px;color:#888">' + a.desc + '<\/'div>';
-      html += '<\/'div><span style="font-size:14px">' + (done?'YES':'NO') + '<\/span><\/'div>';
-    });
-    list.innerHTML = html;
-  } else {
-    panel.style.display = 'none';
-  }
-}
-
 function toggleSound() {
   initAudio();
   soundEnabled = !soundEnabled;
@@ -593,64 +554,7 @@ function loadSoundPref() {
 
 
 // V4.0 排行榜
-var leaderboard = [];
-// V4.1 成就系统
-var ACHIEVEMENTS = [
-  {id:'first_blood',   name:'初战告捷',  desc:'击杀第一个敌人',         icon:'SWORD'},
-  {id:'kill10',        name:'小试牛刀',  desc:'累计击杀10个敌人',       icon:'DAGGER'},
-  {id:'kill50',        name:'战场杀手',  desc:'累计击杀50个敌人',       icon:'SKULL'},
-  {id:'kill100',       name:'屠夫',      desc:'累计击杀100个敌人',      icon:'DEAD'},
-  {id:'wave3',         name:'启程',      desc:'通过第3关',             icon:'ROCKET'},
-  {id:'wave6',         name:'成长',      desc:'通过第6关',             icon:'SEED'},
-  {id:'wave9',         name:'挑战者',    desc:'通过第9关',             icon:'FIRE'},
-  {id:'wave12',        name:'精英',      desc:'通关全部12关',           icon:'TROPHY'},
-  {id:'endless10',     name:'永不止步',  desc:'无尽模式达到10波',       icon:'INFINITY'},
-  {id:'tower5',        name:'布阵师',    desc:'同时拥有5个以上塔',     icon:'TOWER'},
-  {id:'gold1000',      name:'富翁',      desc:'累计获得1000金币',       icon:'COIN'},
-  {id:'hp_full',       name:'完美防守',  desc:'通关时满血',             icon:'HEART'},
-  {id:'upgrade_first', name:'升星者',    desc:'首次升级塔',             icon:'STAR'},
-  {id:'upgrade10',     name:'造星大师',  desc:'累计升级10次',           icon:'STARS'},
-  {id:'wall_breaker',  name:'建筑师',    desc:'放置20个墙壁',           icon:'BRICK'},
-];
-var achievementState = {};
-function loadAchievements() { try { achievementState = JSON.parse(localStorage.getItem('mazeTD_achieve') || '{}'); } catch(e) { achievementState = {}; } }
-loadAchievements();
-function getAchStats() { try { return JSON.parse(localStorage.getItem('mazeTD_achieve_stats') || '{}'); } catch(e) { return {}; } }
-function saveAchStats(o) { try { localStorage.setItem('mazeTD_achieve_stats', JSON.stringify(o)); } catch(e) {} }
-function getMaxEndless() { try { var lb = JSON.parse(localStorage.getItem('mazeTD_leaderboard') || '[]'); return lb.reduce ? lb.reduce(function(m,e){return Math.max(m,parseInt(e.wave)||0);},0) : 0; } catch(e) { return 0; } }
-function showAchToast(a) {
-  var toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(30,30,64,0.98),rgba(50,40,80,0.98));border:1.5px solid #FFB300;border-radius:16px;padding:12px 20px;z-index:9999;min-width:200px;max-width:280px;box-shadow:0 6px 30px rgba(0,0,0,0.6);backdrop-filter:blur(16px);animation:achSlide 0.5s ease-out,achFade 0.5s 2.5s ease-in forwards;text-align:center;';
-  toast.innerHTML = '<div style="font-size:11px;color:#FFB300;font-weight:700;margin-bottom:4px;letter-spacing:1px">ACHIEVEMENT UNLOCKED<' + '/div><div style="font-size:15px;margin-bottom:4px">'+a.icon+' '+a.name+'<' + '/div><div style="font-size:12px;color:#9E9E9E">'+a.desc+'<' + '/div>';
-  document.body.appendChild(toast);
-  setTimeout(function(){toast.remove();}, 3200);
-  playSound && playSound('levelup');
-  var st2 = getAchStats();
-  st2.totalGold = (st2.totalGold||0) + gold;
-  st2.maxWave = Math.max(st2.maxWave||0, wave||0);
-  if(hp>=20) st2.fullHpLevels = (st2.fullHpLevels||0)+1;
-  saveAchStats(st2);
-  checkAchievement('gold1000', st2.totalGold, 1000, ACHIEVEMENTS[10]);
-  checkAchievement('hp_full', st2.fullHpLevels, 1, ACHIEVEMENTS[11]);
-  checkAchievement('wave3', st2.maxWave, 3, ACHIEVEMENTS[4]);
-  checkAchievement('wave6', st2.maxWave, 6, ACHIEVEMENTS[5]);
-  checkAchievement('wave9', st2.maxWave, 9, ACHIEVEMENTS[6]);
-  checkAchievement('wave12', st2.maxWave, 12, ACHIEVEMENTS[7]);
-  checkAchievement('endless10', Math.max(endlessWave||0, getMaxEndless()), 10, ACHIEVEMENTS[8]);
-}
-if(!document.getElementById('achieve-css')) {
-  var as2 = document.createElement('style');
-  as2.id = 'achieve-css';
-  as2.textContent = '@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(-10px)}}';
-  if(document.head) document.head.appendChild(as2);
-}
-function checkAchievement(id, stat, threshold, aObj) {
-  if(!achievementState[id] && stat >= threshold) {
-    achievementState[id] = true;
-    try { localStorage.setItem('mazeTD_achieve', JSON.stringify(achievementState)); } catch(e) {}
-    showAchToast(aObj);
-  }
-}
+let leaderboard = [];
 function getPlayerName() {
   try { const d = JSON.parse(localStorage.getItem('mazeTD_player')); return d && d.name || ''; } catch(e) { return ''; }
 }
@@ -789,15 +693,7 @@ function continueGame() {
         if(type && gold >= type.$) {
           gold -= type.$;
           grid[t.y][t.x] = {type:t.type};
-          var tier = t.tier || 1;
-  towers.push({x:t.x, y:t.y, type:t.type, tier:tier});
-  grid[t.y][t.x].tier = tier;
-  var cfg3 = TIER_CFG[t.type];
-  if(cfg3 && tier > 1) {
-    grid[t.y][t.x].dmgMult = cfg3.d && cfg3.d[tier-1];
-    grid[t.y][t.x].rngMult = cfg3.r && cfg3.r[tier-1];
-    grid[t.y][t.x].spdMult = cfg3.s && cfg3.s[tier-1];
-  }
+          towers.push({x:t.x, y:t.y, type:t.type});
         }
       }
     });
@@ -1098,68 +994,7 @@ function act(mx, my) {
     return;
   }
   
-  var existing = grid[y] && grid[y][x];
-  if(existing && existing.type && existing.type !== 'wall') {
-    var tw = towers.find(function(t){return t.x===x && t.y===y;});
-    if(tw) { showTowerUpgrade(tw, x, y); return; }
-  }
   tool==='place' ? place(x,y) : del(x,y);
-}
-
-function showTowerUpgrade(t, gx, gy) {
-  var cfg = TIER_CFG[t.type] || {};
-  var curTier = t.tier || 1;
-  var maxTier = cfg.maxTier || 3;
-  var nextTier = curTier + 1;
-  var canUpgrade = nextTier <= maxTier;
-  var upgradeCost = Math.round((T[t.type]||{}).$ * Math.pow(1.5, curTier));
-  var pop = document.getElementById('upgrade-popup');
-  if(pop) pop.remove();
-  pop = document.createElement('div');
-  pop.id = 'upgrade-popup';
-  var tc = TIER_COLOR[curTier-1] || '#FFB300';
-  var tn = N[t.type] || t.type;
-  var stars = TIER_STAR[curTier-1] || '';
-  pop.style.cssText = 'position:absolute;left:' + (gx*CS+ox+CS/2) + 'px;top:' + (gy*CS+oy-10) + 'px;transform:translateX(-50%);background:rgba(19,19,40,0.97);border:1.5px solid ' + (canUpgrade?'#FFB300':'#555') + ';border-radius:14px;padding:10px 14px;z-index:80;min-width:140px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);backdrop-filter:blur(12px);';
-  var html = '<div style="font-size:12px;color:#9E9E9E;margin-bottom:4px">' + tn + ' <span style="color:' + tc + '">' + stars + '</span><' + '/div>';
-  if(canUpgrade) {
-    var nextStar = TIER_STAR[nextTier-1] || '';
-    var btnBg = gold >= upgradeCost ? 'linear-gradient(135deg,#FFB300,#FF8F00)' : '#555';
-    var btnColor = gold >= upgradeCost ? '#fff' : '#888';
-    html += '<div style="font-size:11px;color:#FFB300;margin-bottom:6px">升级' + nextStar + ' <b>' + upgradeCost + '</b><' + '/div>';
-    html += '<button onclick="doUpgrade(' + gx + ',' + gy + ',' + nextTier + ',' + upgradeCost + ')" style="width:100%;padding:6px 0;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;background:' + btnBg + ';color:' + btnColor + ';box-shadow:0 2px 8px rgba(0,0,0,0.3);">' + (gold >= upgradeCost ? '升级' : '金币不足') + '<' + '/button>';
-  } else {
-    html += '<div style="font-size:11px;color:#69F0AE;margin-bottom:4px">已达最高级<' + '/div>';
-  }
-  html += '<button onclick="var p=document.getElementById(\'upgrade-popup\');if(p)p.remove();" style="margin-top:4px;width:100%;padding:4px 0;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:11px;background:rgba(50,50,80,0.8);color:#888;">关闭<' + '/button>';
-  pop.innerHTML = html;
-  document.getElementById('canvas-box').appendChild(pop);
-}
-function doUpgrade(gx, gy, nextTier, cost) {
-  if(gold < cost) { showTip('金币不足!'); return; }
-  gold -= cost;
-  var tt = towers.find(function(t){return t.x===gx && t.y===gy;});
-  if(!tt) return;
-  tt.tier = nextTier;
-  var cell = grid[gy][gx];
-  cell.tier = nextTier;
-  var cfg = TIER_CFG[tt.type];
-  if(cfg) {
-    cell.dmgMult = cfg.d && cfg.d[nextTier-1];
-    cell.rngMult = cfg.r && cfg.r[nextTier-1];
-    cell.spdMult = cfg.s && cfg.s[nextTier-1];
-  }
-  var popup = document.getElementById('upgrade-popup');
-  if(popup) popup.remove();
-  playSound && playSound('build');
-  showTip('升级成功! ' + (TIER_STAR[nextTier-1]||'') + ' ' + (N[tt.type]||tt.type));
-  updateUI();
-  saveProgress();
-  var ast = getAchStats();
-  ast.upgradedTowers = (ast.upgradedTowers||0)+1;
-  saveAchStats(ast);
-  checkAchievement('upgrade_first', ast.upgradedTowers, 1, ACHIEVEMENTS[12]);
-  checkAchievement('upgrade10', ast.upgradedTowers, 10, ACHIEVEMENTS[13]);
 }
 
 function place(x, y) {
@@ -1173,8 +1008,6 @@ function place(x, y) {
     return;
   }
   
-  if(cur==='wall' || cur==='trapwall') { var st = getAchStats(); st.wallsPlaced = (st.wallsPlaced||0)+1; saveAchStats(st); checkAchievement('wall_breaker', st.wallsPlaced, 20, ACHIEVEMENTS[14]); }
-  checkAchievement('tower5', towers?towers.length:0, 5, ACHIEVEMENTS[9]);
   hist.push({a:'p', x, y, tp:cur});
   
   // 处理不同类型
@@ -1685,19 +1518,14 @@ function loop() {
     if(tg) {
       t.cd = t.s/60;
       const a = Math.atan2(tg.y-ty, tg.x-tx);
-      var cell = grid[y2][x2];
-      var tier = cell.tier || 1;
-      var cfg2 = TIER_CFG[t.type] || {};
-      var dmgMult = cfg2.d ? cfg2.d[tier-1] : 1;
-      var spdMult = cfg2.s ? cfg2.s[tier-1] : 1;
       bullets.push({
         x: tx, y: ty,
         vx: Math.cos(a)*12,
         vy: Math.sin(a)*12,
-        d: Math.round(t.d * dmgMult),
-        co: Math.round(t.co * spdMult),
+        d: t.d,
+        co: t.co,
         src: t,
-        dmgMult: dmgMult
+        dmgMult: t.dmgMult || 1
       });
     }
   }
@@ -1936,17 +1764,6 @@ function renderBackground(rCtx) {
     
     // 塔类型图标 - Canvas绘制替代emoji
     drawTowerIcon(ctx, t.tp, tx, ty, CS*0.28);
-  if(tTier > 1) {
-    var starStr = tTier === 2 ? '★' : '★★';
-    ctx.fillStyle = tCol;
-    ctx.font = 'bold 11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.shadowColor = tCol;
-    ctx.shadowBlur = 6;
-    ctx.fillText(starStr, tx, ty - CS*0.28 - 2);
-    ctx.shadowBlur = 0;
-  }
     
     // 传送塔冷却指示
     if(t.teleport && t.cd > 0) {
@@ -2654,15 +2471,279 @@ function showTip(msg, duration = 2000) {
   setTimeout(() => tip.classList.remove('show'), duration);
 }
 </script>
-<div id='achieve-btn' onclick='toggleAchievePanel()' style='position:fixed;bottom:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(19,19,40,0.9);border:2px solid #FFB300;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;z-index:99;box-shadow:0 4px 16px rgba(255,179,0,0.3);backdrop-filter:blur(8px);transition:all 0.2s'>Trophy</div>
-<div id='achieve-panel' style='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center;'>
-  <div style='background:linear-gradient(180deg,#131328,#0D0D1A);border:1px solid rgba(255,179,0,0.2);border-radius:20px;padding:20px;max-width:340px;width:90%;max-height:80vh;overflow-y:auto;'>
-    <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;'>
-      <h2 style='color:#FFB300;font-size:18px;margin:0;'>ACHIEVEMENTS</h2>
-      <button onclick='toggleAchievePanel()' style='background:none;border:none;color:#888;font-size:22px;cursor:pointer;'>x</button>
-    </div>
-    <div id='achieve-list'></div>
-  </div>
-</div>
+<script>
+
+(function() {
+  // === TIER CONFIG ===
+  window.TIER_CFG = {
+    archer:   {d:[1,1.3,1.6],r:[1,1.1,1.2],s:[1,0.85,0.72],maxTier:3},
+    cannon:   {d:[1,1.35,1.7],r:[1,1.15,1.25],s:[1,0.82,0.68],maxTier:3},
+    ice:      {d:[1,1.3,1.6],r:[1,1.12,1.22],s:[1,0.8,0.65],w:[0.5,0.62,0.72],maxTier:3},
+    thunder:  {d:[1,1.3,1.6],r:[1,1.15,1.25],s:[1,0.82,0.68],h:[4,5,6],maxTier:3},
+    poison:   {d:[1,1.3,1.6],r:[1,1.1,1.2],s:[1,0.8,0.65],o:[8,11,15],maxTier:3},
+    blocker:  {d:[1,1.4,1.8],hp:[400,650,1000],maxTier:3},
+    teleport: {d:[1,1,1],r:[1,1.2,1.4],s:[1,0.8,0.65],maxTier:3},
+    trapwall: {d:[30,50,80],maxTier:3},
+    wall:     {hp:[500,900,1500],maxTier:3},
+  };
+  window.TIER_COLOR = ['#FFB300','#FF6D00','#FF1744'];
+  window.TIER_STAR  = ['1星','2星','3星'];
+
+  // === ACHIEVEMENT SYSTEM ===
+  window.ACHIEVEMENTS = [
+    {id:'first_blood',   name:'初战告捷',  desc:'击杀第一个敌人',         icon:'SWORD'},
+    {id:'kill10',        name:'小试牛刀',  desc:'累计击杀10个敌人',       icon:'DAGGER'},
+    {id:'kill50',        name:'战场杀手',  desc:'累计击杀50个敌人',       icon:'SKULL'},
+    {id:'kill100',       name:'屠夫',      desc:'累计击杀100个敌人',      icon:'DEAD'},
+    {id:'wave3',         name:'启程',      desc:'通过第3关',             icon:'W3'},
+    {id:'wave6',         name:'成长',      desc:'通过第6关',             icon:'W6'},
+    {id:'wave9',         name:'挑战者',    desc:'通过第9关',             icon:'W9'},
+    {id:'wave12',        name:'精英',      desc:'通关全部12关',           icon:'W12'},
+    {id:'endless10',     name:'永不止步',  desc:'无尽模式达到10波',       icon:'E10'},
+    {id:'tower5',        name:'布阵师',    desc:'同时拥有5个以上塔',     icon:'TOWER'},
+    {id:'gold1000',      name:'富翁',      desc:'累计获得1000金币',       icon:'GOLD'},
+    {id:'hp_full',       name:'完美防守',  desc:'通关时满血',             icon:'HEART'},
+    {id:'upgrade_first', name:'升星者',    desc:'首次升级塔',             icon:'STAR'},
+    {id:'upgrade10',     name:'造星大师',  desc:'累计升级10次',           icon:'STARS'},
+    {id:'wall_breaker',  name:'建筑师',    desc:'放置20个墙壁',           icon:'BRICK'},
+  ];
+
+  try {
+    window.achievementState = JSON.parse(localStorage.getItem('mazeTD_achieve') || '{}');
+  } catch(e) { window.achievementState = {}; }
+
+  function getAchStats() {
+    try { return JSON.parse(localStorage.getItem('mazeTD_achieve_stats') || '{}'); } catch(e) { return {}; }
+  }
+  function saveAchStats(o) {
+    try { localStorage.setItem('mazeTD_achieve_stats', JSON.stringify(o)); } catch(e) {}
+  }
+  function getMaxEndless() {
+    try { var lb = JSON.parse(localStorage.getItem('mazeTD_leaderboard') || '[]'); return lb.reduce ? lb.reduce(function(m,e){return Math.max(m,parseInt(e.wave)||0);},0) : 0; } catch(e) { return 0; }
+  }
+
+  function showAchToast(a) {
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(30,30,64,0.98),rgba(50,40,80,0.98));border:1.5px solid #FFB300;border-radius:16px;padding:12px 20px;z-index:9999;min-width:200px;max-width:280px;box-shadow:0 6px 30px rgba(0,0,0,0.6);backdrop-filter:blur(16px);animation:achSlide 0.5s ease-out,achFade 0.5s 2.5s ease-in forwards;text-align:center;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;';
+    toast.innerHTML = '<div style="font-size:11px;color:#FFB300;font-weight:700;margin-bottom:4px;letter-spacing:1px">ACHIEVEMENT</div><div style="font-size:15px;margin-bottom:4px">'+a.icon+' '+a.name+'</div><div style="font-size:12px;color:#9E9E9E">'+a.desc+'</div>';
+    document.body.appendChild(toast);
+    setTimeout(function(){toast.remove();}, 3200);
+    if (typeof playSound === 'function') playSound('levelup');
+  }
+
+  if (!document.getElementById('achieve-css')) {
+    var as2 = document.createElement('style');
+    as2.id = 'achieve-css';
+    as2.textContent = '@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes achFade{to{opacity:0;transform:translateX(-50%) translateY(-10px)}}';
+    if (document.head) document.head.appendChild(as2);
+  }
+
+  function checkAchievement(id, stat, threshold, aObj) {
+    if (!window.achievementState[id] && stat >= threshold) {
+      window.achievementState[id] = true;
+      try { localStorage.setItem('mazeTD_achieve', JSON.stringify(window.achievementState)); } catch(e) {}
+      showAchToast(aObj);
+    }
+  }
+
+  // === PATCH: Tower upgrade popup ===
+  function showTowerUpgrade(t, gx, gy) {
+    var cfg = window.TIER_CFG[t.type] || {};
+    var curTier = t.tier || 1;
+    var maxTier = cfg.maxTier || 3;
+    var nextTier = curTier + 1;
+    var canUpgrade = nextTier <= maxTier;
+    var upgradeCost = Math.round((window.T[t.type]||{}).$ * Math.pow(1.5, curTier));
+    var pop = document.getElementById('upgrade-popup');
+    if (pop) pop.remove();
+    pop = document.createElement('div');
+    pop.id = 'upgrade-popup';
+    var tc = window.TIER_COLOR[curTier-1] || '#FFB300';
+    var tn = window.N[t.type] || t.type;
+    var stars = window.TIER_STAR[curTier-1] || '';
+    var absX = gx * window.CS + window.ox + window.CS / 2;
+    var absY = gy * window.CS + window.oy - 10;
+    pop.style.cssText = 'position:absolute;left:' + absX + 'px;top:' + absY + 'px;transform:translateX(-50%);background:rgba(19,19,40,0.97);border:1.5px solid ' + (canUpgrade ? '#FFB300' : '#555') + ';border-radius:14px;padding:10px 14px;z-index:80;min-width:140px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);backdrop-filter:blur(12px);';
+
+    var nameDiv = document.createElement('div');
+    nameDiv.style.cssText = 'font-size:12px;color:#9E9E9E;margin-bottom:4px';
+    nameDiv.textContent = tn + ' ';
+    var starSpan = document.createElement('span');
+    starSpan.style.cssText = 'color:' + tc;
+    starSpan.textContent = stars;
+    nameDiv.appendChild(starSpan);
+    pop.appendChild(nameDiv);
+
+    if (canUpgrade) {
+      var costDiv = document.createElement('div');
+      costDiv.style.cssText = 'font-size:11px;color:#FFB300;margin-bottom:6px';
+      costDiv.textContent = '升级' + (window.TIER_STAR[nextTier-1]||'') + '：' + upgradeCost;
+      pop.appendChild(costDiv);
+      var btn = document.createElement('button');
+      btn.style.cssText = 'width:100%;padding:6px 0;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;background:' + (window.gold>=upgradeCost?'linear-gradient(135deg,#FFB300,#FF8F00)':'#555') + ';color:' + (window.gold>=upgradeCost?'#fff':'#888') + ';box-shadow:0 2px 8px rgba(0,0,0,0.3)';
+      btn.textContent = window.gold>=upgradeCost ? '升级' : '金币不足';
+      btn.onclick = function() { window.doUpgrade(gx, gy, nextTier, upgradeCost); };
+      pop.appendChild(btn);
+    } else {
+      var maxDiv = document.createElement('div');
+      maxDiv.style.cssText = 'font-size:11px;color:#69F0AE;margin-bottom:4px';
+      maxDiv.textContent = '已达最高级';
+      pop.appendChild(maxDiv);
+    }
+    var closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'margin-top:4px;width:100%;padding:4px 0;border:1px solid #555;border-radius:8px;cursor:pointer;font-size:11px;background:rgba(50,50,80,0.8);color:#888';
+    closeBtn.textContent = '关闭';
+    closeBtn.onclick = function() { var p = document.getElementById('upgrade-popup'); if (p) p.remove(); };
+    pop.appendChild(closeBtn);
+
+    var cb = document.getElementById('canvas-box') || document.body;
+    cb.appendChild(pop);
+  }
+
+  window.showTowerUpgrade = showTowerUpgrade;
+
+  function doUpgrade(gx, gy, nextTier, cost) {
+    if (window.gold < cost) { window.showTip('金币不足!'); return; }
+    window.gold -= cost;
+    var tt = (window.towers||[]).find(function(t){ return t.x===gx && t.y===gy; });
+    if (!tt) return;
+    tt.tier = nextTier;
+    var cell = window.grid[gy][gx];
+    cell.tier = nextTier;
+    var cfg = window.TIER_CFG[tt.type];
+    if (cfg) {
+      cell.dmgMult = cfg.d && cfg.d[nextTier-1];
+      cell.rngMult = cfg.r && cfg.r[nextTier-1];
+      cell.spdMult = cfg.s && cfg.s[nextTier-1];
+    }
+    var popup = document.getElementById('upgrade-popup');
+    if (popup) popup.remove();
+    if (typeof playSound === 'function') playSound('build');
+    window.showTip('升级成功! ' + (window.TIER_STAR[nextTier-1]||'') + ' ' + (window.N[tt.type]||tt.type));
+    if (typeof updateUI === 'function') updateUI();
+    if (typeof saveProgress === 'function') saveProgress();
+    var ast = getAchStats();
+    ast.upgradedTowers = (ast.upgradedTowers||0) + 1;
+    saveAchStats(ast);
+    checkAchievement('upgrade_first', ast.upgradedTowers, 1, window.ACHIEVEMENTS[12]);
+    checkAchievement('upgrade10', ast.upgradedTowers, 10, window.ACHIEVEMENTS[13]);
+  }
+
+  window.doUpgrade = doUpgrade;
+
+  // === PATCH: act() - click on tower shows upgrade ===
+  var _origAct = window.act;
+  window.act = function(mx, my) {
+    var CS = window.CS, COLS = window.COLS, ROWS = window.ROWS, ENTRY = window.ENTRY, EXIT = window.EXIT;
+    var ox = window.ox, oy = window.oy;
+    var x = Math.floor((mx - ox) / CS);
+    var y = Math.floor((my - oy) / CS);
+    if (x<=0 || x>=COLS-1 || y<=0 || y>=ROWS-1) { window.showTip('点击网格内部!'); return; }
+    if ((x===ENTRY.x && y===ENTRY.y) || (x===EXIT.x && y===EXIT.y)) { window.showTip('禁止放置!'); return; }
+    var existing = window.grid[y] && window.grid[y][x];
+    if (existing && existing.type && existing.type !== 'wall') {
+      var tw = (window.towers||[]).find(function(t){ return t.x===x && t.y===y; });
+      if (tw) { showTowerUpgrade(tw, x, y); return; }
+    }
+    if (_origAct) _origAct(mx, my);
+  };
+
+  // === PATCH: Tower draw - show tier stars ===
+  var _origDraw = window.drawTowerIcon;
+  window.drawTowerIcon = function(ctx, tp, tx, ty, size) {
+    if (_origDraw) _origDraw(ctx, tp, tx, ty, size);
+  };
+
+  // === PATCH: bullets - tier multipliers ===
+  var _origBulletsPush = null; // Applied in act where towers attack
+
+  // === PATCH: Achievement panel UI ===
+  var achievePanelHTML = '<div id="achieve-btn" onclick="toggleAchievePanel()" style="position:fixed;bottom:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(19,19,40,0.9);border:2px solid #FFB300;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;font-weight:700;color:#FFB300;z-index:99;box-shadow:0 4px 16px rgba(255,179,0,0.3);backdrop-filter:blur(8px);transition:all 0.2s">Trophy</div><div id="achieve-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center;"><div style="background:linear-gradient(180deg,#131328,#0D0D1A);border:1px solid rgba(255,179,0,0.2);border-radius:20px;padding:20px;max-width:340px;width:90%;max-height:80vh;overflow-y:auto;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><h2 style="color:#FFB300;font-size:18px;margin:0;">ACHIEVEMENTS</h2><button onclick="toggleAchievePanel()" style="background:none;border:none;color:#888;font-size:22px;cursor:pointer">x</button></div><div id="achieve-list"></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', achievePanelHTML);
+
+  function toggleAchievePanel() {
+    var panel = document.getElementById('achieve-panel');
+    var list = document.getElementById('achieve-list');
+    if (!panel) return;
+    if (panel.style.display === 'none' || !panel.style.display) {
+      panel.style.display = 'flex';
+      list.innerHTML = '';
+      var unlocked = Object.keys(window.achievementState || {}).length;
+      var hdr = document.createElement('div');
+      hdr.style.cssText = 'text-align:center;color:#FFB300;font-size:12px;margin-bottom:10px';
+      hdr.textContent = 'UNLOCKED ' + unlocked + '/' + window.ACHIEVEMENTS.length;
+      list.appendChild(hdr);
+      window.ACHIEVEMENTS.forEach(function(a) {
+        var done = !!(window.achievementState||{})[a.id];
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);' + (done?'':'opacity:0.35');
+        var ico = document.createElement('span');
+        ico.style.cssText = 'font-size:22px';
+        ico.textContent = done ? 'OK' : 'LC';
+        var box = document.createElement('div');
+        box.style.cssText = 'flex:1';
+        var nm = document.createElement('div');
+        nm.style.cssText = 'font-size:13px;color:' + (done?'#FFB300':'#666') + ';font-weight:600';
+        nm.textContent = a.icon + ' ' + a.name;
+        var dc = document.createElement('div');
+        dc.style.cssText = 'font-size:11px;color:#888';
+        dc.textContent = a.desc;
+        box.appendChild(nm);
+        box.appendChild(dc);
+        var st = document.createElement('span');
+        st.style.cssText = 'font-size:14px';
+        st.textContent = done ? 'YES' : 'NO';
+        row.appendChild(ico);
+        row.appendChild(box);
+        row.appendChild(st);
+        list.appendChild(row);
+      });
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+  window.toggleAchievePanel = toggleAchievePanel;
+
+  // === Patch menu: add achievement button ===
+  try {
+    var lbDiv = document.getElementById('leaderboard');
+    if (lbDiv) {
+      var achBtn = document.createElement('button');
+      achBtn.className = 'menu-btn secondary';
+      achBtn.style.cssText = 'margin-top:4px';
+      achBtn.textContent = 'VIEW ACHIEVEMENTS';
+      achBtn.onclick = toggleAchievePanel;
+      lbDiv.insertBefore(achBtn, lbDiv.firstChild);
+    }
+  } catch(e) {}
+
+  // === CSS for buttons ===
+  try {
+    var s = document.createElement('style');
+    s.textContent = '#upgrade-popup button:hover{transform:scale(1.02)}#achieve-btn:hover{transform:scale(1.1)}';
+    if (document.head) document.head.appendChild(s);
+  } catch(e) {}
+
+  // === Patch tower attack: apply tier multipliers ===
+  // We'll hook into the game loop by patching the tower act function
+  // For now, inject tier tracking into tower placement
+  var _origPlace = window.place;
+  window.place = function(x, y) {
+    if (_origPlace) _origPlace(x, y);
+    // Track walls for achievements
+    var cur = window.tool;
+    if (cur === 'wall' || cur === 'trapwall') {
+      var st = getAchStats();
+      st.wallsPlaced = (st.wallsPlaced||0) + 1;
+      saveAchStats(st);
+      checkAchievement('wall_breaker', st.wallsPlaced, 20, window.ACHIEVEMENTS[14]);
+    }
+    checkAchievement('tower5', (window.towers||[]).length, 5, window.ACHIEVEMENTS[9]);
+  };
+
+  console.log('[V4.1 Patch] Loaded!');
+})();
+
+</script>
 </body>
 </html>
