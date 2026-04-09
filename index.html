@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V3.1 - 数值平衡调整</title>
+<title>🧩 迷宫挑战 V3.2 - 策略解谜</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -250,21 +250,19 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V3.0</h1>
-<h2>全面优化 · 存档系统 · 教学引导</h2>
-<button class="menu-btn" onclick="startGame()">▶ 继续游戏</button>
+<h1>🧩 迷宫挑战</h1>
+<h2>动动脑筋 · 解锁关卡 · 挑战无尽</h2>
+<button class="menu-btn" onclick="startGame()">▶ 开始挑战</button>
 <div class="guide">
-<h3>🆕 V3.0 重大更新</h3>
-<p><b class="new">速度调整</b> - 敌人速度恢复到50%</p>
-<p><b class="new">智能破墙</b> - 普通敌人3秒/破坏者1.5秒</p>
-<p><b class="new">攻击进度条</b> - 破墙时显示红色进度</p>
-<p><b class="new">存档系统</b> - 自动保存通关进度</p>
-<p><b class="new">教学引导</b> - 首关教学提示</p>
-<p><b>策略提示</b></p>
-<p>· 封堵迷宫可迫使敌人攻击争取时间</p>
-<p>· 陷阱墙会对攻击者造成反伤</p>
-<p>· 墙壁有血条，可被摧毁</p>
-<p>· 破坏者是真正的威胁!</p>
+<h3>🎮 玩法说明</h3>
+<p>在迷宫中建造防御，阻止怪物到达终点</p>
+<p>建造墙壁可以改变怪物路线</p>
+<p>不同防御塔有不同效果，合理搭配！</p>
+<p><b>⚠️ 注意</b>：有些怪物会< b class="bad">攻击墙壁</b>！</p>
+<h3>🆕 V3.2 新功能</h3>
+<p><b class="new">求助模式</b> - 不会？让好友帮你布阵</p>
+<p><b class="new">一键分享</b> - 炫耀你的战绩</p>
+<p><b class="new">无尽模式</b> - 看你能走多远</p>
 </div>
 </div>
 <div id="game">
@@ -309,6 +307,8 @@ canvas{display:block;width:100%;height:100%}
 <div id="toolbar">
 <div class="tool-btn selected" id="tool-place" onclick="setTool('place')"><span class="icon">📍</span><span class="name">放置</span></div>
 <div class="tool-btn" id="tool-delete" onclick="setTool('delete')"><span class="icon">🗑️</span><span class="name">删除</span></div>
+<div class="tool-btn" id="tool-share" onclick="shareToFriends()" title="炫耀一下"><span class="icon">🏆</span><span class="name">炫耀</span></div>
+<div class="tool-btn" id="tool-help" onclick="showHelp()" title="求助好友"><span class="icon">🤝</span><span class="name">求助</span></div>
 </div>
 <div id="actions">
 <button class="act-btn" id="btn-fight" onclick="toggleBattle()">⚔️ 开战</button>
@@ -319,16 +319,21 @@ canvas{display:block;width:100%;height:100%}
 </div>
 <div id="over">
 <h1>💀 游戏结束</h1>
+<p>关卡: <b id="final-level">1-1</b></p>
 <p>波次: <b id="final-wave">0</b></p>
 <p>击杀: <b id="final-kills">0</b></p>
-<button class="menu-btn" onclick="startGame()" style="margin-top:20px">🔄 再来一局</button>
+<p style="margin:16px 0;color:#888;font-size:13px">💬 "没关系，再来一次~"</p>
+<button class="menu-btn" onclick="startGame()" style="margin-top:12px">🔄 再来一局</button>
+<button class="menu-btn" onclick="shareToFriends()" style="margin-top:8px;background:linear-gradient(135deg,#FF6D00,#FF9100)">🏆 炫耀战绩</button>
 </div>
 <div id="level-complete">
 <h1>🎉 关卡完成！</h1>
 <p>星级: <b id="stars">⭐⭐⭐</b></p>
 <p>奖励: <b id="bonus-gold">0</b>金</p>
-<button class="menu-btn" onclick="nextLevel()" style="margin-top:16px">➡️ 下一关</button>
+<p style="margin:12px 0;color:#888;font-size:13px" id="complete-tip">💬 "不错不错，继续加油~"</p>
+<button class="menu-btn" onclick="nextLevel()" style="margin-top:12px">➡️ 下一关</button>
 <button class="menu-btn endless-btn" onclick="startEndless()" style="margin-top:8px;background:linear-gradient(135deg,#7C4DFF,#651FFF)">⚡ 无尽模式</button>
+<button class="menu-btn" onclick="shareToFriends()" style="margin-top:8px;background:linear-gradient(135deg,#FF6D00,#FF9100)">🏆 炫耀一下</button>
 </div>
 <script>
 // ========== 基础配置 ==========
@@ -1962,10 +1967,12 @@ function gameOver() {
     const finalWave = endlessWave;
     const finalKills = endlessKills + kills;
     endlessMode = false;
+    document.getElementById('final-level').textContent = '无尽模式';
     document.getElementById('final-wave').textContent = '无尽 ' + finalWave;
     document.getElementById('final-kills').textContent = finalKills;
     showTip('无尽模式结束! 达到波次' + finalWave + ' 击杀' + finalKills);
   } else {
+    document.getElementById('final-level').textContent = currentLevel ? currentLevel.name : '1-1';
     document.getElementById('final-wave').textContent = wave;
     document.getElementById('final-kills').textContent = kills;
   }
@@ -1997,6 +2004,16 @@ function levelComplete() {
   saveProgress();
   document.getElementById('stars').textContent = '⭐'.repeat(stars);
   document.getElementById('bonus-gold').textContent = bonus;
+  
+  // 童锦程风格评语
+  let tipText = '"不错不错，继续加油~"';
+  if(stars === 3) {
+    tipText = '"有点东西啊，兄弟！"';
+  } else if(stars === 2) {
+    tipText = '"还行，及格了~"';
+  }
+  document.getElementById('complete-tip').textContent = '💬 ' + tipText;
+  
   document.getElementById('level-complete').style.display = 'flex';
 }
 
@@ -2111,6 +2128,94 @@ if(document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => setTimeout(initTowerIcons, 100));
 } else {
   setTimeout(initTowerIcons, 100);
+}
+
+// ========== V3.2 社交功能 - 童锦程"给台阶"理论 ==========
+
+// 炫耀功能 - 分享战绩到微信
+function shareToFriends() {
+  const level = currentLevel ? currentLevel.name : 'X';
+  const waveNum = endlessMode ? `无尽${endlessWave}波` : `第${wave}波`;
+  const killNum = kills;
+  const hpLeft = hp;
+  
+  // 生成炫耀文案 - 童锦程风格：直接、自信
+  let msg = `🎮 【迷宫挑战】\n`;
+  msg += `━━━━━━━━━━━\n`;
+  msg += `📍 关卡：${level}\n`;
+  msg += `⚔️ 进度：${waveNum}\n`;
+  msg += `💀 击杀：${killNum}\n`;
+  msg += `❤️ 生命：${hpLeft}\n`;
+  msg += `━━━━━━━━━━━\n`;
+  
+  // 根据表现给不同称号
+  if(endlessMode && endlessWave > 20) {
+    msg += `🏆 称号：迷宫宗师\n`;
+    msg += `💬 "这波操作，一般人做不到"\n`;
+  } else if(endlessMode && endlessWave > 10) {
+    msg += `🏆 称号：策略高手\n`;
+    msg += `💬 "还行，普通人到这就不行了"\n`;
+  } else if(wave > 8 || (endlessMode && endlessWave > 5)) {
+    msg += `🏆 称号：有点东西\n`;
+    msg += `💬 "还行，继续加油"\n`;
+  } else {
+    msg += `🏆 称号：初出茅庐\n`;
+    msg += `💬 "刚起步，慢慢来"\n`;
+  }
+  
+  msg += `\n👉 挑战一下？\n🔗 https://timmmmmo.github.io/MazeTD/`;
+  
+  // 复制到剪贴板
+  if(navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => {
+      showTip('📋 战绩已复制！去发给好友炫耀~');
+    }).catch(() => {
+      // 降级：显示文本让用户手动复制
+      prompt('复制这段战绩发给好友：', msg);
+    });
+  } else {
+    prompt('复制这段战绩发给好友：', msg);
+  }
+}
+
+// 求助好友功能 - 童锦程"给台阶"：给用户一个请人帮忙的理由
+function showHelp() {
+  const level = currentLevel ? currentLevel.name : 'X';
+  const curWave = wave;
+  
+  // 生成求助文案 - 强调"帮忙"而不是"邀请玩游戏"
+  let msg = `🤝 【迷宫求助】\n`;
+  msg += `━━━━━━━━━━━\n`;
+  msg += `📍 我卡在：${level}\n`;
+  msg += `⚔️ 当前波次：第${curWave}波\n`;
+  msg += `━━━━━━━━━━━\n`;
+  msg += `💬 "帮我看一下这关怎么布阵？\n`;
+  msg += `   你的眼光一向比较准~"\n`;
+  msg += `\n👉 帮我看看？\n🔗 https://timmmmmo.github.io/MazeTD/`;
+  
+  if(navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => {
+      showTip('📋 求助文案已复制！发给好友~');
+    }).catch(() => {
+      prompt('发给好友求助：', msg);
+    });
+  } else {
+    prompt('发给好友求助：', msg);
+  }
+}
+
+// 显示帮助说明
+function showHelpPanel() {
+  // 简化说明，让新手快速上手
+  showTip('💡 点击地图放置防御，守住出口！');
+}
+
+// 增强提示框样式
+function showTip(msg, duration = 2000) {
+  const tip = document.getElementById('tip');
+  tip.textContent = msg;
+  tip.classList.add('show');
+  setTimeout(() => tip.classList.remove('show'), duration);
 }
 </script>
 </body>
