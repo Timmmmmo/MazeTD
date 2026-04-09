@@ -328,10 +328,27 @@ canvas{display:block;width:100%;height:100%}
 <p>星级: <b id="stars">⭐⭐⭐</b></p>
 <p>奖励: <b id="bonus-gold">0</b>金</p>
 <button class="menu-btn" onclick="nextLevel()" style="margin-top:16px">➡️ 下一关</button>
+<button class="menu-btn endless-btn" onclick="startEndless()" style="margin-top:8px;background:linear-gradient(135deg,#7C4DFF,#651FFF)">⚡ 无尽模式</button>
 </div>
 <script>
 // ========== 基础配置 ==========
 const CS=40, COLS=8, ROWS=12, ENTRY={x:1,y:0}, EXIT={x:COLS-2,y:ROWS-1};
+
+// ========== V3.2 性能优化常量 ==========
+const C = {
+  // 攻击速度（帧）
+  ATK_NORMAL: 180,      // 普通敌人破墙：3秒
+  ATK_DESTROYER: 90,    // 破坏者破墙：1.5秒
+  ATK_DMG: 30,          // 普通敌人攻击力
+  // 属性切换（帧）
+  SHIFT_INTERVAL: 300,  // 变形怪切换：5秒
+  // 减速效果（帧）
+  SLOW_FRAMES: 100,     // 冰冻减速持续
+  // 中毒效果（帧）
+  POISON_FRAMES: 150,   // 中毒持续
+  // 寻路限制
+  MAX_PATH_ATTEMPTS: 1000
+};
 
 // ========== V3.1 数值系统 - 方案A保守调整 ==========
 // 设计原则：易上手难精通、策略多样、资源约束
@@ -419,11 +436,29 @@ const LEVELS = [
    desc:'BOSS战!', difficulty:5, chapter:'精英篇'}
 ];
 
+// ========== V3.2 无尽模式状态 ==========
+let endlessMode = false;
+let endlessWave = 0;
+let endlessGold = 500;
+let endlessKills = 0;
+
+// ========== V3.2 对象池 ==========
+const pools = {
+  parts: [],
+  bullets: [],
+  dmgTexts: []
+};
+const POOL_MAX = {parts: 200, bullets: 100, dmgTexts: 100};
+
 // ========== 游戏状态 ==========
 let cv, ctx, W, H, ox, oy, grid, path, towers=[], enemies=[], bullets=[], parts=[], dmgTexts=[], hist=[];
 let gold, hp, wave, kills, cur='archer', tool='place', fighting=false, inited=false;
 let currentLevel=null, curLevelIdx=0;
 let tutorialStep=0, tutorialShown=false;
+
+// ========== V3.2 离屏Canvas缓存 ==========
+let bgCanvas = null, bgCtx = null;
+let bgDirty = true;
 
 // ========== AI进化系统 ==========
 let aiMemory = {
@@ -512,6 +547,15 @@ function resize() {
     cv.height = H;
     ox = Math.floor((W - COLS*CS)/2);
     oy = Math.floor((H - ROWS*CS)/2);
+    
+    // V3.2: 初始化离屏Canvas
+    if(!bgCanvas || bgCanvas.width !== W || bgCanvas.height !== H) {
+      bgCanvas = document.createElement('canvas');
+      bgCanvas.width = W;
+      bgCanvas.height = H;
+      bgCtx = bgCanvas.getContext('2d');
+      bgDirty = true;
+    }
   }
 }
 
@@ -842,7 +886,7 @@ function clearAll() {
 // ========== 战斗系统 ==========
 function toggleBattle() {
   if(!fighting) {
-    if(!path) {
+    if(!endlessMode && !path) {
       showTip('⚠️ 请先建造迷宫!');
       return;
     }
@@ -850,7 +894,13 @@ function toggleBattle() {
     document.getElementById('btn-fight').textContent = '⏸ 暂停';
     document.getElementById('entry-mark').style.display = 'none';
     document.getElementById('exit-mark').style.display = 'none';
-    if(!enemies.length && wave < currentLevel.waves) spawnWave();
+    
+    // V3.2: 无尽模式特殊处理
+    if(endlessMode) {
+      if(!enemies.length) nextEndlessWave();
+    } else {
+      if(!enemies.length && wave < currentLevel.waves) spawnWave();
+    }
     loop();
   } else {
     fighting = false;
@@ -994,7 +1044,7 @@ function loop() {
     // 变形怪: 切换属性
     if(e.isShifter) {
       e.shiftTimer++;
-      if(e.shiftTimer >= 300) { // 每5秒切换
+      if(e.shiftTimer >= C.SHIFT_INTERVAL) { // 每5秒切换
         e.shiftTimer = 0;
         const elements = ['fire', 'ice', 'poison', 'normal'];
         e.currentElement = elements[Math.floor(Math.random() * elements.length)];
@@ -1007,7 +1057,7 @@ function loop() {
     // 速度计算
     let sp = e.spd;
     if(e.sl > 0) { sp *= 0.4; e.sl--; }
-    if(e.dt > 0) { e.hp -= e.dv; e.dt--; }
+    if(e.dt > 0) { e.hp -= e.dv; e.dt--; if(e.dt <= 0) e.dv = 0; }
     
     // V2.1: 敌人攻击堵路障碍物逻辑
     const offsetX = ox !== undefined ? ox : 0;
@@ -1032,8 +1082,8 @@ function loop() {
         e.attackTimer = (e.attackTimer || 0) + 1;
         
         // 攻击速度：破坏者1.5秒(90帧)，普通敌人3秒(180帧)
-        const attackSpeed = e.isDestroyer ? 90 : 180;
-        const damage = e.isDestroyer ? (e.atkDmg || 80) : 30;
+        const attackSpeed = e.isDestroyer ? C.ATK_DESTROYER : C.ATK_NORMAL;
+        const damage = e.isDestroyer ? (e.atkDmg || 80) : C.ATK_DMG;
         
         if(e.attackTimer >= attackSpeed) {
           e.attackTimer = 0;
@@ -1145,9 +1195,12 @@ function loop() {
     }
   }
   
-  // 波次结束检测
+  // V3.2: 波次结束检测
   if(enemies.length === 0) {
-    if(wave < currentLevel.waves) {
+    if(endlessMode) {
+      // 无尽模式：持续下一波
+      setTimeout(() => { if(fighting) nextEndlessWave(); }, 900);
+    } else if(wave < currentLevel.waves) {
       setTimeout(() => { if(fighting) spawnWave(); }, 900);
     } else {
       setTimeout(levelComplete, 400);
@@ -1253,8 +1306,8 @@ function loop() {
         dmgTexts.push({x:e.x, y:e.y-30, txt:'-'+finalDmg, co:'#F44336', life:30});
         
         // 特殊效果
-        if(b.src.w) e.sl = 100;
-        if(b.src.o) { e.dt = 150; e.dv = b.src.o; }
+        if(b.src.w) e.sl = C.SLOW_FRAMES;
+        if(b.src.o) { e.dt = C.POISON_FRAMES; e.dv = b.src.o; }
         if(b.src.a) {
           for(const o of enemies) {
             if(o!==e && Math.hypot(o.x-b.x, o.y-b.y) < b.src.a*CS) {
@@ -1281,14 +1334,18 @@ function loop() {
   }
   
   // === 粒子/文字更新 ===
+  // V3.2: 粒子回收到对象池
   for(let i=parts.length-1; i>=0; i--) {
     parts[i].x += parts[i].vx;
     parts[i].y += parts[i].vy;
     parts[i].vy += 0.15;
     parts[i].l--;
-    if(parts[i].l <= 0) parts.splice(i, 1);
+    if(parts[i].l <= 0) {
+      pools.parts.push(parts.splice(i, 1)[0]);
+    }
   }
   
+  // V3.2: 伤害文字回收
   for(let i=dmgTexts.length-1; i>=0; i--) {
     dmgTexts[i].y -= 1.5;
     dmgTexts[i].life--;
@@ -1303,15 +1360,33 @@ function loop() {
 function render() {
   if(!ctx || W===0 || H===0) return;
   
+  // V3.2: 战斗时使用离屏缓存（避免重复绘制背景）
+  if(bgCanvas && bgCtx && !fighting && bgDirty) {
+    // 只在非战斗状态下缓存背景
+    renderBackground(bgCtx);
+    bgDirty = false;
+  }
+  
+  // V3.2: 战斗时从缓存绘制背景，否则直接绘制
+  if(bgCanvas && bgCtx && !bgDirty) {
+    ctx.drawImage(bgCanvas, 0, 0);
+    bgDirty = true; // 标记需要在下帧重绘
+  } else {
+    renderBackground(ctx);
+  }
+}
+
+// V3.2: 背景渲染（网格、入口出口）
+function renderBackground(rCtx) {
   // 深色渐变背景
-  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H));
+  const grad = rCtx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H));
   grad.addColorStop(0, '#1a1a3e');
   grad.addColorStop(0.5, '#0d0d1f');
   grad.addColorStop(1, '#050510');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
+  rCtx.fillStyle = grad;
+  rCtx.fillRect(0, 0, W, H);
   
-  // 网格 - 带发光效果
+  // 网格
   for(let y=0; y<ROWS; y++) {
     for(let x=0; x<COLS; x++) {
       const px = ox + x*CS;
@@ -1319,62 +1394,61 @@ function render() {
       const v = grid[y][x];
       
       if(v === 1) {
-        // 墙壁 - 立体效果
-        const wallGrad = ctx.createLinearGradient(px, py, px, py+CS);
+        // 墙壁
+        const wallGrad = rCtx.createLinearGradient(px, py, px, py+CS);
         wallGrad.addColorStop(0, '#3a3a6e');
         wallGrad.addColorStop(0.5, '#252550');
         wallGrad.addColorStop(1, '#1a1a3a');
-        ctx.fillStyle = wallGrad;
-        ctx.fillRect(px+2, py+2, CS-4, CS-4);
-        
-        // 墙壁高光
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px+2, py+2, CS-4, CS-4);
+        rCtx.fillStyle = wallGrad;
+        rCtx.fillRect(px+2, py+2, CS-4, CS-4);
+        rCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+        rCtx.lineWidth = 1;
+        rCtx.strokeRect(px+2, py+2, CS-4, CS-4);
       } else {
-        // 空地 - 微弱网格线
-        ctx.fillStyle = '#0f0f2f';
-        ctx.fillRect(px, py, CS, CS);
-        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px, py, CS, CS);
+        // 空地
+        rCtx.fillStyle = '#0f0f2f';
+        rCtx.fillRect(px, py, CS, CS);
+        rCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+        rCtx.lineWidth = 1;
+        rCtx.strokeRect(px, py, CS, CS);
       }
     }
   }
   
-  // 入口出口 - 发光效果
+  // 入口出口
   const ex = ox + ENTRY.x*CS, ey = oy + ENTRY.y*CS;
-  ctx.shadowColor = '#00E676';
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = 'rgba(0,230,118,0.2)';
-  ctx.fillRect(ex, ey, CS, CS);
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = '#00E676';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(ex+2, ey+2, CS-4, CS-4);
-  ctx.font = (CS*0.45)+'px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('⬇', ex+CS/2, ey+CS/2);
+  rCtx.shadowColor = '#00E676';
+  rCtx.shadowBlur = 20;
+  rCtx.fillStyle = 'rgba(0,230,118,0.2)';
+  rCtx.fillRect(ex, ey, CS, CS);
+  rCtx.shadowBlur = 0;
+  rCtx.strokeStyle = '#00E676';
+  rCtx.lineWidth = 3;
+  rCtx.strokeRect(ex+2, ey+2, CS-4, CS-4);
+  rCtx.font = (CS*0.45)+'px sans-serif';
+  rCtx.textAlign = 'center';
+  rCtx.textBaseline = 'middle';
+  rCtx.fillText('⬇', ex+CS/2, ey+CS/2);
   
   const xx = ox + EXIT.x*CS, xy = oy + EXIT.y*CS;
-  ctx.shadowColor = '#FF1744';
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = 'rgba(255,23,68,0.2)';
-  ctx.fillRect(xx, xy, CS, CS);
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = '#FF1744';
-  ctx.strokeRect(xx+2, xy+2, CS-4, CS-4);
-  ctx.fillText('⬆', xx+CS/2, xy+CS/2);
+  rCtx.shadowColor = '#FF1744';
+  rCtx.shadowBlur = 20;
+  rCtx.fillStyle = 'rgba(255,23,68,0.2)';
+  rCtx.fillRect(xx, xy, CS, CS);
+  rCtx.shadowBlur = 0;
+  rCtx.strokeStyle = '#FF1744';
+  rCtx.strokeRect(xx+2, xy+2, CS-4, CS-4);
+  rCtx.fillText('⬆', xx+CS/2, xy+CS/2);
   
-  // AI记忆的危险区域标记 - 脉冲效果
+  // AI危险区域
   if(aiMemory.dangerZones.length > 0) {
     const pulse = (Date.now() % 1000) / 1000;
-    ctx.fillStyle = `rgba(255, 215, 0, ${0.1 + pulse * 0.1})`;
+    rCtx.fillStyle = `rgba(255, 215, 0, ${0.1 + pulse * 0.1})`;
     for(const zone of aiMemory.dangerZones) {
-      ctx.fillRect(ox+(zone.x-1)*CS, oy+(zone.y-1)*CS, CS*3, CS*3);
+      rCtx.fillRect(ox+(zone.x-1)*CS, oy+(zone.y-1)*CS, CS*3, CS*3);
     }
   }
+}
   
   // 路径预览 - 发光虚线
   if(path && !fighting) {
@@ -1826,10 +1900,22 @@ function drawEnemyIcon(ctx, e, x, y, r) {
 }
 
 function spawnP(x, y, c, n) {
+  // V3.2: 使用对象池优化
   for(let i=0; i<n; i++) {
+    let p = pools.parts.pop();
+    if(!p) {
+      if(parts.length < POOL_MAX.parts) {
+        p = {x:0, y:0, vx:0, vy:0, co:'', l:0, ml:0};
+      } else {
+        continue; // 跳过超出上限的粒子
+      }
+    }
     const a = Math.random() * Math.PI * 2;
     const s = 1.5 + Math.random() * 4;
-    parts.push({x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, co:c, l:25, ml:25});
+    p.x = x; p.y = y;
+    p.vx = Math.cos(a)*s; p.vy = Math.sin(a)*s;
+    p.co = c; p.l = 25; p.ml = 25;
+    parts.push(p);
   }
 }
 
@@ -1870,13 +1956,41 @@ function startGame() {
 
 function gameOver() {
   fighting = false;
-  document.getElementById('final-wave').textContent = wave;
-  document.getElementById('final-kills').textContent = kills;
+  
+  // V3.2: 无尽模式结束
+  if(endlessMode) {
+    const finalWave = endlessWave;
+    const finalKills = endlessKills + kills;
+    endlessMode = false;
+    document.getElementById('final-wave').textContent = '无尽 ' + finalWave;
+    document.getElementById('final-kills').textContent = finalKills;
+    showTip('无尽模式结束! 达到波次' + finalWave + ' 击杀' + finalKills);
+  } else {
+    document.getElementById('final-wave').textContent = wave;
+    document.getElementById('final-kills').textContent = kills;
+  }
+  
   document.getElementById('over').style.display = 'flex';
 }
 
 function levelComplete() {
   fighting = false;
+  
+  // V3.2: 无尽模式处理
+  if(endlessMode) {
+    endlessKills += kills;
+    const bonus = hp * 10 + wave * 5;
+    gold += bonus;
+    showTip('无尽模式! 波次' + endlessWave + ' 击杀' + kills + ' 奖励+' + bonus);
+    // 无尽模式不结束，继续下一波
+    setTimeout(() => {
+      fighting = true;
+      nextEndlessWave();
+      loop();
+    }, 1000);
+    return;
+  }
+  
   const stars = hp >= 18 ? 3 : hp >= 12 ? 2 : 1;
   const bonus = currentLevel.goldBonus;
   saveScore(currentLevel.id, stars);
@@ -1884,6 +1998,81 @@ function levelComplete() {
   document.getElementById('stars').textContent = '⭐'.repeat(stars);
   document.getElementById('bonus-gold').textContent = bonus;
   document.getElementById('level-complete').style.display = 'flex';
+}
+
+// V3.2: 无尽模式
+function startEndless() {
+  endlessMode = true;
+  endlessWave = 0;
+  endlessKills = 0;
+  curLevelIdx = 0;
+  currentLevel = {waves: 9999, boss: false}; // 模拟关卡
+  gold = 500;
+  hp = 20;
+  wave = 0;
+  kills = 0;
+  fighting = false;
+  tutorialStep = 0;
+  tutorialShown = true;
+  aiMemory = { dangerZones: [], scoutSurvived: 0, destroyerAttacks: 0 };
+  
+  document.getElementById('level-complete').style.display = 'none';
+  initGrid();
+  updateUI();
+  updateAIInfo();
+  render();
+  showTip('⚡无尽模式开始! 挑战极限!');
+}
+
+// V3.2: 无尽模式下一波
+function nextEndlessWave() {
+  endlessWave++;
+  wave = endlessWave;
+  
+  // 难度递增
+  const difficulty = 1 + endlessWave * 0.15;
+  
+  // BOSS每10波出现
+  const isBossWave = endlessWave % 10 === 0;
+  
+  showWave(isBossWave ? '👹 BOSS波!' : '🌊 无尽波次' + endlessWave, isBossWave ? '#F44336' : '#4CAF50');
+  
+  if(isBossWave) {
+    // BOSS战
+    const bossHp = 3000 + endlessWave * 200;
+    enemies.push(makeEnemy(bossHp, '#AB47BC', 1.0, 300, {isBoss:true}));
+    for(let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        if(fighting) enemies.push(createEnemyByType('fast', endlessWave));
+      }, 500 + i * 300);
+    }
+  } else {
+    // 普通波次：每波增加敌人数
+    const baseCount = Math.min(5 + endlessWave, 30);
+    
+    for(let i = 0; i < baseCount; i++) {
+      setTimeout(() => {
+        if(fighting) {
+          // 敌人类型权重（根据波次解锁）
+          let etype = 'normal';
+          const r = Math.random();
+          
+          if(r < 0.08 && endlessWave >= 6) etype = 'scout';
+          else if(r < 0.15 && endlessWave >= 7) etype = 'destroyer';
+          else if(r < 0.22 && endlessWave >= 8) etype = 'shifter';
+          else if(r < 0.40 && endlessWave >= 2) etype = 'fast';
+          else if(r < 0.52 && endlessWave >= 4) etype = 'tank';
+          
+          const e = createEnemyByType(etype, endlessWave);
+          e.mh *= difficulty; // 随波次增加血量
+          enemies.push(e);
+        }
+      }, i * 200);
+    }
+  }
+  
+  updateUI();
+  updateAIInfo();
 }
 
 function nextLevel() {
