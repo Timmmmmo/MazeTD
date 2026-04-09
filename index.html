@@ -258,7 +258,7 @@ canvas{display:block;width:100%;height:100%}
 <p>在迷宫中建造防御，阻止怪物到达终点</p>
 <p>建造墙壁可以改变怪物路线</p>
 <p>不同防御塔有不同效果，合理搭配！</p>
-<p><b>⚠️ 注意</b>：有些怪物会< b class="bad">攻击墙壁</b>！</p>
+<p><b>⚠️ 注意</b>：有些怪物会<b class="bad">攻击墙壁</b>！</p>
 <h3>🆕 V3.2 新功能</h3>
 <p><b class="new">求助模式</b> - 不会？让好友帮你布阵</p>
 <p><b class="new">一键分享</b> - 炫耀你的战绩</p>
@@ -1934,7 +1934,9 @@ function updateUI() {
 // ========== 游戏流程 ==========
 function startGame() {
   const saved = loadProgress();
-  curLevelIdx = saved ? saved.curLevelIdx : 0;
+  curLevelIdx = saved ? (saved.curLevelIdx || 0) : 0;
+  // 防御性边界检查
+  if(curLevelIdx < 0 || curLevelIdx >= LEVELS.length) curLevelIdx = 0;
   currentLevel = LEVELS[curLevelIdx];
   gold = currentLevel.startGold;
   hp = 20;
