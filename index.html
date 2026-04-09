@@ -2634,13 +2634,14 @@ function showTip(msg, duration = 2000) {
   // === PATCH: act() - click on tower shows upgrade ===
   var _origAct = window.act;
   window.act = function(mx, my) {
+    if (!window.grid) { window.showTip('请先开始游戏!'); return; }
     var CS = window.CS, COLS = window.COLS, ROWS = window.ROWS, ENTRY = window.ENTRY, EXIT = window.EXIT;
     var ox = window.ox, oy = window.oy;
     var x = Math.floor((mx - ox) / CS);
     var y = Math.floor((my - oy) / CS);
     if (x<=0 || x>=COLS-1 || y<=0 || y>=ROWS-1) { window.showTip('点击网格内部!'); return; }
     if ((x===ENTRY.x && y===ENTRY.y) || (x===EXIT.x && y===EXIT.y)) { window.showTip('禁止放置!'); return; }
-    var existing = window.grid[y] && window.grid[y][x];
+    var existing = window.grid && window.grid[y] && window.grid[y][x];
     if (existing && existing.type && existing.type !== 'wall') {
       var tw = (window.towers||[]).find(function(t){ return t.x===x && t.y===y; });
       if (tw) { showTowerUpgrade(tw, x, y); return; }
