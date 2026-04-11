@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V3.0 - 全面优化</title>
+<title>迷宫塔防 V4.1 - 塔升级系统</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -246,6 +246,33 @@ canvas{display:block;width:100%;height:100%}
 #over h1{font-size:40px;color:var(--red);margin-bottom:24px;text-shadow:0 0 40px rgba(255,23,68,0.5)}
 #level-complete h1{font-size:36px;color:var(--green);margin-bottom:20px;text-shadow:0 0 40px rgba(0,230,118,0.5)}
 #over b,#level-complete b{color:var(--gold);font-size:18px}
+
+/* V4.1: 塔升级按钮 */
+.upgrade-btn{
+  position:absolute;padding:6px 14px;border-radius:12px;
+  font-size:11px;font-weight:bold;cursor:pointer;z-index:50;
+  border:none;transition:all 0.2s;pointer-events:auto;
+}
+.upgrade-btn:active{transform:scale(0.95);}
+#upgrade-panel{
+  position:absolute;display:none;z-index:60;
+  background:rgba(20,20,40,0.97);border:2px solid #FFD700;
+  border-radius:14px;padding:12px;min-width:160px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6);
+}
+#upgrade-panel .up-info{color:#ccc;font-size:12px;margin-bottom:8px;text-align:center}
+#upgrade-panel .up-btn{
+  width:100%;padding:8px;margin-top:6px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a3e;
+  font-weight:bold;font-size:13px;cursor:pointer;
+}
+#upgrade-panel .up-btn:hover{background:linear-gradient(135deg,#FFE55C,#FFB300);}
+#upgrade-panel .up-btn:disabled{opacity:0.4;cursor:not-allowed;}
+#upgrade-panel .close-btn{
+  position:absolute;top:4px;right:8px;background:none;border:none;
+  color:#888;font-size:16px;cursor:pointer;
+}
+
 </style>
 </head>
 <body>
@@ -275,6 +302,12 @@ canvas{display:block;width:100%;height:100%}
 <span class="stat">🏆<b id="show-level">1-1</b></span>
 </div>
 <div id="canvas-box">
+<div id="upgrade-panel">
+  <button class="close-btn" onclick="closeUpgradePanel()">×</button>
+  <div class="up-info" id="up-info">选择一座塔</div>
+  <button class="up-btn" id="up-btn" onclick="doUpgradeFromPanel()">升级 (0 金)</button>
+</div>
+
 <canvas id="cv"></canvas>
 <div id="entry-mark">🟢 入口</div>
 <div id="exit-mark">🔴 出口</div>
@@ -659,6 +692,126 @@ function showTip(m) {
 }
 
 // ========== 建造系统 ==========
+
+// ========== V4.1 塔升级系统 ==========
+// 每座塔最多升3级，属性逐级提升
+// 升级成本 = 基础成本 × 等级 × 0.6
+// 升级属性: 伤害+40%, 攻击范围+15%, 攻击速度+20% per level
+
+function upgradeTower(x, y) {
+  const t = towers.find(t => t.x === x && t.y === y);
+  if (!t || t.tp === 'wall' || t.tp === 'trapwall') {
+    showTip('⚠️ 该类型无法升级');
+    return;
+  }
+  if (t.lv >= 3) {
+    showTip('⚠️ 已达满级 (Lv.3)');
+    return;
+  }
+  const baseCost = T[t.tp].$;
+  const cost = Math.floor(baseCost * (t.lv + 1) * 0.6);
+  if (gold < cost) {
+    showTip('⚠️ 金币不足! 需要 ' + cost);
+    return;
+  }
+  gold -= cost;
+  t.lv = (t.lv || 1) + 1;
+  // 升级属性加成
+  t.d = Math.floor(T[t.tp].d * (1 + (t.lv - 1) * 0.4));
+  t.r = parseFloat((T[t.tp].r * (1 + (t.lv - 1) * 0.15)).toFixed(1));
+  t.s = Math.floor(T[t.tp].s * (1 - (t.lv - 1) * 0.2));
+  // 升级特效
+  spawnP(offsetX + (x + 0.5) * CS, offsetY + (y + 0.5) * CS, '#FFD700', 20);
+  showTip('⬆ Lv.' + t.lv + ' ' + N[t.tp] + ' 升级成功!');
+  saveProgress();
+  updateUI();
+}
+
+function getUpgradeCost(tower) {
+  if (!tower || tower.lv >= 3) return null;
+  return Math.floor(T[tower.tp].$ * (tower.lv + 1) * 0.6);
+}
+
+// ========== V4.1 Canvas 离屏渲染优化 ==========
+// 使用离屏 Canvas 缓存静态背景，大幅减少每帧重绘量
+let bgCanvas, bgCtx, bgDirty = true;
+
+function initBgCanvas() {
+  bgCanvas = document.createElement('canvas');
+  bgCtx = bgCanvas.getContext('2d');
+}
+
+function renderBackgroundToCache() {
+  if (!bgCtx || W === 0) return;
+  bgCanvas.width = W;
+  bgCanvas.height = H;
+  bgDirty = false;
+}
+
+function renderBg(c) {
+  // 深色渐变背景
+  const grad = c.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H));
+  grad.addColorStop(0, '#1a1a3e');
+  grad.addColorStop(0.5, '#0d0d1f');
+  grad.addColorStop(1, '#050510');
+  c.fillStyle = grad;
+  c.fillRect(0, 0, W, H);
+
+  // 网格
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const px = ox + x * CS;
+      const py = oy + y * CS;
+      const v = grid[y][x];
+
+      if (v === 1) {
+        const wallGrad = c.createLinearGradient(px, py, px, py + CS);
+        wallGrad.addColorStop(0, '#3a3a6e');
+        wallGrad.addColorStop(0.5, '#252550');
+        wallGrad.addColorStop(1, '#1a1a3a');
+        c.fillStyle = wallGrad;
+        c.fillRect(px + 2, py + 2, CS - 4, CS - 4);
+        c.strokeStyle = 'rgba(255,255,255,0.1)';
+        c.lineWidth = 1;
+        c.strokeRect(px + 2, py + 2, CS - 4, CS - 4);
+      } else {
+        c.fillStyle = '#0f0f2f';
+        c.fillRect(px, py, CS, CS);
+        c.strokeStyle = 'rgba(255,255,255,0.03)';
+        c.lineWidth = 1;
+        c.strokeRect(px, py, CS, CS);
+      }
+    }
+  }
+
+  // 入口出口
+  const ex = ox + ENTRY.x * CS, ey = oy + ENTRY.y * CS;
+  c.shadowColor = '#00E676';
+  c.shadowBlur = 20;
+  c.fillStyle = 'rgba(0,230,118,0.2)';
+  c.fillRect(ex, ey, CS, CS);
+  c.shadowBlur = 0;
+  c.strokeStyle = '#00E676';
+  c.lineWidth = 3;
+  c.strokeRect(ex + 2, ey + 2, CS - 4, CS - 4);
+  c.font = (CS * 0.45) + 'px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('\u2B07', ex + CS/2, ey + CS/2);
+
+  const xx = ox + EXIT.x * CS, xy = oy + EXIT.y * CS;
+  c.shadowColor = '#FF1744';
+  c.shadowBlur = 20;
+  c.fillStyle = 'rgba(255,23,68,0.2)';
+  c.fillRect(xx, xy, CS, CS);
+  c.shadowBlur = 0;
+  c.strokeStyle = '#FF1744';
+  c.strokeRect(xx + 2, xy + 2, CS - 4, CS - 4);
+  c.fillText('\u2B06', xx + CS/2, xy + CS/2);
+
+  bgDirty = false;
+}
+
 function pickTower(towerType) {
   cur = towerType;
   tool = 'place';
@@ -1301,6 +1454,19 @@ function loop() {
 function render() {
   if(!ctx || W===0 || H===0) return;
   
+  // V4.1: 离屏背景缓存
+  if(bgCtx && bgDirty) {
+    renderBg(bgCtx);
+  }
+  if(bgCanvas) {
+    ctx.drawImage(bgCanvas, 0, 0);
+  } else {
+    renderBg(ctx);
+  }
+  bgDirty = true;
+
+  if(!ctx || W===0 || H===0) return;
+  
   // 深色渐变背景
   const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H));
   grad.addColorStop(0, '#1a1a3e');
@@ -1921,6 +2087,64 @@ if(document.readyState === 'loading') {
 } else {
   setTimeout(initTowerIcons, 100);
 }
+
+// V4.1: 塔升级面板
+let selectedTowerForUpgrade = null;
+
+function showUpgradePanel(tower) {
+  selectedTowerForUpgrade = tower;
+  const panel = document.getElementById('upgrade-panel');
+  const info = document.getElementById('up-info');
+  const btn = document.getElementById('up-btn');
+  
+  if (!panel || !tower) return;
+  
+  const cost = getUpgradeCost(tower);
+  const rect = cv.getBoundingClientRect();
+  const cx = rect.left + (tower.x + 0.5) * CS * (rect.width / W);
+  const cy = rect.top + (tower.y + 0.5) * CS * (rect.height / H);
+  
+  panel.style.left = (cx - 80) + 'px';
+  panel.style.top = (cy - 100) + 'px';
+  
+  if (tower.lv >= 3) {
+    info.innerHTML = '\u2B50 ' + N[tower.tp] + ' Lv.' + tower.lv + '<br><span style="color:#FFD700">已达满级</span>';
+    btn.disabled = true;
+    btn.textContent = '满级';
+  } else {
+    const extraDmg = Math.floor(T[tower.tp].d * 0.4);
+    const extraRng = (T[tower.tp].r * 0.15).toFixed(1);
+    info.innerHTML = N[tower.tp] + ' Lv.' + tower.lv + ' → <b style="color:#FFD700">Lv.' + (tower.lv+1) + '</b><br>' +
+      '\u2694 ' + tower.d + ' → ' + (tower.d + extraDmg) + ' 伤害<br>' +
+      '\u26A1 ' + tower.r + ' → ' + (tower.r + parseFloat(extraRng)) + ' 范围';
+    btn.disabled = false;
+    btn.textContent = '升级 (' + cost + ' 金)';
+  }
+  
+  panel.style.display = 'block';
+}
+
+function closeUpgradePanel() {
+  document.getElementById('upgrade-panel').style.display = 'none';
+  selectedTowerForUpgrade = null;
+}
+
+function doUpgradeFromPanel() {
+  if (!selectedTowerForUpgrade) return;
+  const {x, y} = selectedTowerForUpgrade;
+  closeUpgradePanel();
+  upgradeTower(x, y);
+}
+
+// 点击其他地方关闭面板
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('upgrade-panel');
+  if (panel && panel.style.display === 'block' && 
+      !panel.contains(e.target) && e.target.id !== 'up-btn') {
+    closeUpgradePanel();
+  }
+});
+
 </script>
 </body>
 </html>
