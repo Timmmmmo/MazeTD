@@ -688,52 +688,171 @@ function initGrid() {
 
 // ========== A*寻路 - 支持攻击堵路障碍物 ==========
 // V2.1: 敌人可以攻击堵路的墙壁/塔，寻找最短路径
-function findPath(avoidZones=[]) {
-  if(!grid) return null;
+// ========== V8.0 增强寻路系统 ==========
+// P0: 多路径选择 + 路径权重 + 动态寻路
+
+// 路径权重配置
+const PATH_CONFIG = {
+  maxPaths: 3,              // 最大保留路径数
+  preferClear: true,        // 优先无障碍路径
+  avoidDanger: true,        // 避开危险区域
+  pathCostWeight: 1.0,     // 路径长度权重
+  blockedPenalty: 2.0,     // 障碍物惩罚倍率
+  dangerPenalty: 5.0        // 危险区域惩罚
+};
+
+// V8.0: 多路径A*寻路 - 返回多条备选路径
+function findPaths(maxPaths = 3) {
+  if(!grid) return [];
   
-  const q = [[ENTRY.x, ENTRY.y, []]];
-  const v = {};
-  v[ENTRY.x+','+ENTRY.y] = 1;
+  const allPaths = [];
   const d = [[0,1],[1,0],[0,-1],[-1,0]];
   
-  while(q.length) {
-    const [x, y, p] = q.shift();
-    if(x===EXIT.x && y===EXIT.y) return p.concat([[x,y]]);
+  // 使用优先队列（BFS + 优先级）
+  const queue = [{
+    x: ENTRY.x,
+    y: ENTRY.y,
+    path: [[ENTRY.x, ENTRY.y]],
+    cost: 0
+  }];
+  const visited = {};
+  visited[ENTRY.x + ',' + ENTRY.y] = 0;
+  
+  while(queue.length > 0 && allPaths.length < maxPaths * 2) {
+    // 按cost排序（优先队列）
+    queue.sort((a, b) => a.cost - b.cost);
+    const current = queue.shift();
     
-    for(const [dx,dy] of d) {
-      const nx = x+dx, ny = y+dy;
-      const k = nx+','+ny;
+    // 到达终点
+    if(current.x === EXIT.x && current.y === EXIT.y) {
+      allPaths.push({
+        path: current.path,
+        length: current.path.length,
+        blocked: current.path.filter(p => p[2]).length,
+        cost: current.cost
+      });
+      continue;
+    }
+    
+    // 探索邻居
+    for(const [dx, dy] of d) {
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      const key = nx + ',' + ny;
       
-      // V2.1: 允许通过有障碍物的地方（敌人会攻击）
-      // 但优先选择无障碍的路径
-      if(nx>=0 && nx<COLS && ny>=0 && ny<ROWS && !v[k]) {
-        // 检查是否在避开区域内
-        let inDanger = false;
-        for(const zone of avoidZones) {
-          if(Math.abs(nx-zone.x)<=1 && Math.abs(ny-zone.y)<=1) {
-            inDanger = true;
-            break;
-          }
-        }
-        
-        // V2.1: 如果是障碍物（墙/塔），仍然可以通过，但标记为需要攻击
-        const isBlocked = grid[ny][nx] !== 0;
-        
-        if(!inDanger) {
-          v[k] = 1;
-          // 如果路径被堵，标记需要攻击
-          const newPath = p.concat([[x, y, isBlocked]]);
-          q.push([nx, ny, newPath]);
-        }
-      }
+      if(nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+      
+      // 计算该格子的代价
+      const isBlocked = grid[ny][nx] !== 0;
+      const moveCost = isBlocked ? PATH_CONFIG.blockedPenalty : 1;
+      const newCost = current.cost + moveCost;
+      
+      // 如果已访问且代价更高，跳过
+      if(visited[key] !== undefined && visited[key] <= newCost) continue;
+      visited[key] = newCost;
+      
+      queue.push({
+        x: nx,
+        y: ny,
+        path: current.path.concat([[nx, ny, isBlocked]]),
+        cost: newCost
+      });
     }
   }
   
-  // 如果避开危险区域无法找到路径,则使用普通路径
+  // 按代价排序并返回TOP N
+  return allPaths
+    .sort((a, b) => {
+      // 主要按路径长度，次要按障碍物数量
+      if(a.length !== b.length) return a.length - b.length;
+      return a.blocked - b.blocked;
+    })
+    .slice(0, maxPaths);
+}
+
+// V8.0: 向后兼容 - 返回主路径
+function findPath(avoidZones = []) {
+  const paths = findPaths(1);
   if(avoidZones.length > 0) {
-    return findPath([]);
+    // 过滤掉经过危险区域的路径
+    const safePaths = paths.filter(p => {
+      return !p.path.some(seg => {
+        return avoidZones.some(zone => 
+          Math.abs(seg[0] - zone.x) <= 1 && Math.abs(seg[1] - zone.y) <= 1
+        );
+      });
+    });
+    return safePaths.length > 0 ? safePaths[0].path : (paths[0]?.path || null);
   }
-  return null;
+  return paths[0]?.path || null;
+}
+
+// V8.0: 获取敌人专属路径（考虑AI记忆）
+function getEnemyPath(enemy) {
+  // 侦察兵：使用记忆的危险区域
+  if(enemy.isScout && aiMemory.dangerZones.length > 0) {
+    const safePaths = findPaths(3).filter(p => {
+      return !p.path.some(seg => {
+        return aiMemory.dangerZones.some(zone =>
+          Math.abs(seg[0] - zone.x) <= 1 && Math.abs(seg[1] - zone.y) <= 1
+        );
+      });
+    });
+    if(safePaths.length > 0) {
+      return { path: safePaths[0].path, isSafe: true };
+    }
+  }
+  
+  // 普通敌人：使用最短路径
+  const paths = findPaths(2);
+  if(paths.length > 0) {
+    return { path: paths[0].path, isSafe: paths[0].blocked === 0 };
+  }
+  
+  return { path: null, isSafe: false };
+}
+
+// V8.0: 路径变化通知（战斗中使用）
+let pathChangeListeners = [];
+function onPathChanged() {
+  pathChangeListeners.forEach(fn => fn());
+}
+function addPathChangeListener(fn) {
+  pathChangeListeners.push(fn);
+}
+
+// V8.0: 刷新所有敌人路径缓存
+function refreshAllEnemyPaths() {
+  const paths = findPaths(3);
+  enemies.forEach(e => {
+    // 保留侦察兵的特殊路径
+    if(e.isScout && aiMemory.dangerZones.length > 0) {
+      const safePaths = paths.filter(p => {
+        return !p.path.some(seg => {
+          return aiMemory.dangerZones.some(zone =>
+            Math.abs(seg[0] - zone.x) <= 1 && Math.abs(seg[1] - zone.y) <= 1
+          );
+        });
+      });
+      if(safePaths.length > 0) {
+        e.pathInfo = {
+          path: safePaths[0].path,
+          isSafe: true,
+          alternatives: paths.slice(1).map(p => p.path)
+        };
+      }
+    } else {
+      // 普通敌人使用新路径
+      if(paths.length > 0) {
+        e.pathInfo = {
+          path: paths[0].path,
+          isSafe: paths[0].blocked === 0,
+          alternatives: paths.slice(1).map(p => p.path)
+        };
+        e.altPathIndex = 0;
+      }
+    }
+  });
 }
 
 function turns(p) {
@@ -754,6 +873,7 @@ function updateInfo() {
   const e = document.getElementById('show-efficiency');
   if(!l) return;
   
+  // V8.0: 显示主路径信息
   l.textContent = path ? path.length : '断';
   t.textContent = turns(path);
   
@@ -763,14 +883,32 @@ function updateInfo() {
     return;
   }
   
+  // V8.0: 计算路径效率和可用路径数
+  const allPaths = findPaths(3);
+  const pathCount = allPaths.length;
+  
   const m = Math.abs(EXIT.x-ENTRY.x) + Math.abs(EXIT.y-ENTRY.y);
   const r = path.length / m;
   const b = 1 + turns(path) * 0.18;
   const s = Math.floor(r * b * 100);
   
-  if(s >= 150) { e.textContent = '极佳'; e.className = 'good'; }
-  else if(s >= 100) { e.textContent = '良好'; e.className = 'good'; }
-  else { e.textContent = '较差'; e.className = 'bad'; }
+  // 路径评价考虑：长度、转弯、可选路径数
+  let efficiency = '良好';
+  let efficiencyClass = 'good';
+  
+  if(pathCount >= 3) {
+    efficiency = '极佳!';
+    efficiencyClass = 'good';
+  } else if(pathCount >= 2) {
+    efficiency = '良好';
+    efficiencyClass = 'good';
+  } else if(pathCount === 1) {
+    if(s >= 150) { efficiency = '良好'; }
+    else { efficiency = '可优化'; efficiencyClass = 'bad'; }
+  }
+  
+  e.textContent = efficiency;
+  e.className = efficiencyClass;
 }
 
 function updateTool() {
@@ -1231,23 +1369,44 @@ function createEnemyByType(type, wave) {
 }
 
 function makeEnemy(hp, co, sz, g, opts={}, spd=0.735) {
-  // AI进化: 侦察兵使用记忆的危险区域
-  let usePath = path;
-  let customPath = null;
+  // V8.0: 使用增强寻路系统
+  const pathInfo = {
+    path: null,
+    isSafe: false,
+    alternatives: []
+  };
   
-  if(opts.isScout && aiMemory.dangerZones.length > 0) {
-    customPath = findPath(aiMemory.dangerZones);
-    if(customPath) usePath = customPath;
+  // 获取主路径和备选路径
+  const paths = findPaths(3);
+  if(paths.length > 0) {
+    pathInfo.path = paths[0].path;
+    pathInfo.isSafe = paths[0].blocked === 0;
+    pathInfo.alternatives = paths.slice(1).map(p => p.path);
   }
   
-  // 确保path有效
-  if(!usePath || usePath.length === 0) {
-    usePath = findPath() || [[ENTRY.x, ENTRY.y]];
+  // 侦察兵优先使用安全路径
+  if(opts.isScout && aiMemory.dangerZones.length > 0) {
+    const safePaths = paths.filter(p => {
+      return !p.path.some(seg => {
+        return aiMemory.dangerZones.some(zone =>
+          Math.abs(seg[0] - zone.x) <= 1 && Math.abs(seg[1] - zone.y) <= 1
+        );
+      });
+    });
+    if(safePaths.length > 0) {
+      pathInfo.path = safePaths[0].path;
+      pathInfo.isSafe = true;
+    }
+  }
+  
+  // 确保有有效路径
+  if(!pathInfo.path || pathInfo.path.length === 0) {
+    pathInfo.path = [[ENTRY.x, ENTRY.y]];
   }
   
   // 确保ox, oy已初始化
-  const posX = (ox !== undefined ? ox : 0) + (usePath[0][0]+0.5)*CS;
-  const posY = (oy !== undefined ? oy : 0) + (usePath[0][1]+0.5)*CS;
+  const posX = (ox !== undefined ? ox : 0) + (pathInfo.path[0][0]+0.5)*CS;
+  const posY = (oy !== undefined ? oy : 0) + (pathInfo.path[0][1]+0.5)*CS;
   
   return {
     x: posX,
@@ -1262,6 +1421,10 @@ function makeEnemy(hp, co, sz, g, opts={}, spd=0.735) {
     dt: 0,
     dv: 0,
     pi: 0,
+    // V8.0: 路径信息
+    pathInfo: pathInfo,
+    // 备用路径索引
+    altPathIndex: 0,
     boss: opts.isBoss || false,
     isScout: opts.isScout || false,
     isDestroyer: opts.isDestroyer || false,
@@ -1308,12 +1471,33 @@ function loop() {
     if(e.sl > 0) { sp *= 0.4; e.sl--; }
     if(e.dt > 0) { e.hp -= e.dv; e.dt--; }
     
-    // V2.1: 敌人攻击堵路障碍物逻辑
+    // V8.0: 增强寻路系统
     const offsetX = ox !== undefined ? ox : 0;
     const offsetY = oy !== undefined ? oy : 0;
     
-    // 计算当前位置和目标位置
-    let usePath = e.customPath || path;
+    // V8.0: 获取当前路径，优先使用敌人专属路径
+    let usePath = e.pathInfo?.path || path;
+    
+    // V8.0: 检查是否需要切换到备用路径
+    if(e.pathInfo?.alternatives && e.pathInfo.alternatives.length > 0) {
+      const nextIdx = Math.min(Math.floor(e.pi) + 1, usePath.length - 1);
+      if(nextIdx >= 0 && nextIdx < usePath.length) {
+        const nextPos = usePath[nextIdx];
+        // 如果当前路径前方有障碍，尝试备用路径
+        if(grid[nextPos[1]] && grid[nextPos[1]][nextPos[0]] !== 0) {
+          // 敌人会选择攻击或绕行
+          // V8.0: 非破坏者有30%概率尝试绕行
+          if(!e.isDestroyer && Math.random() < 0.3 && e.altPathIndex < e.pathInfo.alternatives.length) {
+            e.altPathIndex++;
+            usePath = e.pathInfo.alternatives[e.altPathIndex - 1];
+            e.pi = 0; // 从新路径起点开始
+            // 播放绕行提示（调试用）
+            // console.log('敌人选择绕行!');
+          }
+        }
+      }
+    }
+    
     if(!usePath || usePath.length === 0) {
       usePath = findPath() || [[ENTRY.x, ENTRY.y], [EXIT.x, EXIT.y]];
     }
@@ -1390,8 +1574,10 @@ function loop() {
             grid[ny][nx] = 0;
             spawnP(offsetX+(nx+0.5)*CS, offsetY+(ny+0.5)*CS, '#78909C', 10);
             showTip('💥 敌人摧毁了墙壁!');
+            // V8.0: 重新计算所有路径
             path = findPath();
-            e.customPath = null;
+            // 刷新所有敌人的路径缓存
+            refreshAllEnemyPaths();
             e.attacking = false;
           }
           
