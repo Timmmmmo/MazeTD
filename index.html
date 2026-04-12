@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V5.0 - 腾讯品质</title>
+<title>迷宫塔防 V7.0 - 平衡数值</title>
 <style>
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
@@ -377,29 +377,33 @@ const ELEMENT_BONUS = {
   thunder: {weakTo: ['poison'], bonus: 1.8}          // 雷克制毒（连锁效果）
 };
 
-// 塔配置 - V6.0数值平衡
+// ========== V7.0 平衡数值系统 ==========
+// 设计原则：黄金比例 + 策略博弈 + 平滑曲线
+// 黄金法则：各塔DPS差距<30%，克制加成后差距<80%，塔成本占比60-70%
+
+// 塔配置 - V7.0平衡数值
 // 公式：DPS = 伤害 / 攻击间隔秒数
-// 目标：各塔DPS接近，但有克制差异
+// 平衡策略：弓箭(均衡)→冰(控场)→炮(AOE)→毒(DOT)→雷(连锁)
 const T = {
   // 弓箭塔：均衡型，单体稳定输出
-  // 定位：新手之友，适合清理普通敌人
-  archer: {c:'#4CAF50', element:'archer', d:15, r:4.2, s:900, $:60, dps:16.7, rangeType:'single'},
+  // DPS=18, 成本65, 定位：新手万金油
+  archer: {c:'#4CAF50', element:'archer', d:18, r:4.0, s:1000, $:65, dps:18, rangeType:'single'},
   
-  // 冰冻塔：控制型，减速+持续伤害
-  // 定位：核心控场，被火/雷克制，克制毒/快速敌人
-  ice: {c:'#03A9F4', element:'ice', d:8, r:3.5, s:1200, $:80, dps:6.7, slow:0.6, slowDur:180},
+  // 冰冻塔：控制型，减速+控制
+  // DPS=8+减速价值, 成本75, 定位：核心控场
+  ice: {c:'#03A9F4', element:'ice', d:10, r:3.5, s:1200, $:75, dps:8.3, slow:0.4, slowDur:150},
   
   // 炮塔：AOE型，高爆发群体伤害
-  // 定位：清怪神器，被冰/毒克制，适合密集敌人
-  cannon: {c:'#F44336', element:'fire', d:28, r:2.5, s:1500, $:120, dps:18.7, aoe:1.2},
+  // DPS=21+AOE加成, 成本110, 定位：群体清怪
+  cannon: {c:'#F44336', element:'fire', d:32, r:2.5, s:1500, $:110, dps:21.3, aoe:1.2},
   
   // 毒塔：持续型，叠加伤害
-  // 定位：坦克克星，被冰/弓箭克制，适合高血量敌人
-  poison: {c:'#8BC34A', element:'poison', d:4, r:3.0, s:600, $:90, dps:6.7, dot:8, dotStacks:5, dotDur:240},
+  // DPS=6+满层DOT, 成本85, 定位：坦克克星
+  poison: {c:'#8BC34A', element:'poison', d:5, r:3.0, s:800, $:85, dps:6.25, dot:12, dotStacks:5, dotDur:200},
   
-  // 雷电塔：连锁型，高加成AOE
-  // 定位：精英杀手，被毒克制，克制毒/密集敌人
-  thunder: {c:'#FFC107', element:'thunder', d:20, r:3.2, s:1100, $:140, dps:18.2, chain:4, chainMult:0.7},
+  // 雷电塔：连锁型，高伤害
+  // DPS=18+连锁加成, 成本125, 定位：精英杀手
+  thunder: {c:'#9C27B0', element:'thunder', d:22, r:4.0, s:1200, $:125, dps:18.3, chain:3},
   
   // 墙壁：基础防御
   wall: {c:'#78909C', d:0, r:0, s:0, $:20, hp:500, maxHp:500, isWall:true, armor:0.1}
@@ -442,89 +446,98 @@ function getLevelParams(levelIdx) {
 }
 
 const LEVELS = [
+  // ========== V7.0 平衡关卡配置 ==========
+  // 黄金比例：起始金币650→300，金币奖励30→300，塔成本占比60-70%
+  // 星级评分：基于HP剩余百分比，3星需>90%保持压力
+  
   // 第一章：入门篇（关卡1-5）- 教学引导
-  {id:'1-1', name:'初阵', chapter:'tutorial', waves:3, startGold:550, goldBonus:35,
-   unlock:['wall','archer'], enemies:['normal'], starThresholds:[0.9, 0.7, 0.5],
+  // 起始金币: 650, 每波奖励: 40-60, 目标: 熟悉操作
+  {id:'1-1', name:'初阵', chapter:'tutorial', waves:3, startGold:650, goldBonus:40,
+   unlock:['wall','archer'], enemies:['normal'], starThresholds:[0.95, 0.85, 0.70],
    desc:'放置墙壁和弓箭塔'},
-  {id:'1-2', name:'疾风', chapter:'tutorial', waves:3, startGold:520, goldBonus:40,
-   unlock:['wall','archer','ice'], enemies:['normal','fast'], starThresholds:[0.85, 0.65, 0.45],
+  {id:'1-2', name:'疾风', chapter:'tutorial', waves:3, startGold:620, goldBonus:50,
+   unlock:['wall','archer','ice'], enemies:['normal','fast'], starThresholds:[0.90, 0.80, 0.65],
    desc:'冰塔减速快速敌人'},
-  {id:'1-3', name:'铁壁', chapter:'tutorial', waves:4, startGold:500, goldBonus:45,
-   unlock:['wall','archer','ice','cannon'], enemies:['normal','fast'], starThresholds:[0.8, 0.6, 0.4],
+  {id:'1-3', name:'铁壁', chapter:'tutorial', waves:4, startGold:600, goldBonus:55,
+   unlock:['wall','archer','ice','cannon'], enemies:['normal','fast'], starThresholds:[0.85, 0.75, 0.60],
    desc:'炮塔AOE清理'},
-  {id:'1-4', name:'毒雾', chapter:'tutorial', waves:4, startGold:480, goldBonus:50,
-   unlock:['wall','archer','ice','cannon','poison'], enemies:['normal','fast','tank'], starThresholds:[0.75, 0.55, 0.35],
+  {id:'1-4', name:'毒雾', chapter:'tutorial', waves:4, startGold:580, goldBonus:65,
+   unlock:['wall','archer','ice','cannon','poison'], enemies:['normal','fast','tank'], starThresholds:[0.80, 0.70, 0.55],
    desc:'毒塔克制坦克'},
-  {id:'1-5', name:'雷霆', chapter:'tutorial', waves:5, startGold:450, goldBonus:60,
-   unlock:['all'], enemies:['normal','fast','tank'], boss:true, starThresholds:[0.7, 0.5, 0.3],
+  {id:'1-5', name:'雷霆', chapter:'tutorial', waves:5, startGold:550, goldBonus:80,
+   unlock:['all'], enemies:['normal','fast','tank'], boss:true, starThresholds:[0.75, 0.65, 0.50],
    desc:'雷电塔连锁攻击 + 第一次BOSS'},
   
   // 第二章：基础篇（关卡6-10）- 塔种组合
-  {id:'2-1', name:'暗流', chapter:'basics', waves:5, startGold:430, goldBonus:70,
-   unlock:['all'], enemies:['normal','fast','scout'], starThresholds:[0.7, 0.5, 0.3],
+  // 起始金币: 530→480, 每波奖励: 90→130
+  {id:'2-1', name:'暗流', chapter:'basics', waves:5, startGold:530, goldBonus:90,
+   unlock:['all'], enemies:['normal','fast','scout'], starThresholds:[0.70, 0.60, 0.45],
    desc:'侦察兵出现'},
-  {id:'2-2', name:'破壁', chapter:'basics', waves:6, startGold:410, goldBonus:80,
-   unlock:['all'], enemies:['normal','fast','destroyer'], starThresholds:[0.65, 0.45, 0.25],
+  {id:'2-2', name:'破壁', chapter:'basics', waves:6, startGold:510, goldBonus:100,
+   unlock:['all'], enemies:['normal','fast','destroyer'], starThresholds:[0.65, 0.55, 0.40],
    desc:'破坏者攻击墙壁'},
-  {id:'2-3', name:'幻形', chapter:'basics', waves:6, startGold:390, goldBonus:90,
-   unlock:['all'], enemies:['normal','fast','shifter'], starThresholds:[0.6, 0.4, 0.2],
+  {id:'2-3', name:'幻形', chapter:'basics', waves:6, startGold:500, goldBonus:110,
+   unlock:['all'], enemies:['normal','fast','shifter'], starThresholds:[0.60, 0.50, 0.35],
    desc:'变形怪切换属性'},
-  {id:'2-4', name:'混战', chapter:'basics', waves:7, startGold:370, goldBonus:100,
-   unlock:['all'], enemies:['normal','fast','tank','scout'], starThresholds:[0.55, 0.35, 0.15],
+  {id:'2-4', name:'混战', chapter:'basics', waves:7, startGold:490, goldBonus:120,
+   unlock:['all'], enemies:['normal','fast','tank','scout'], starThresholds:[0.55, 0.45, 0.30],
    desc:'敌人混合波次'},
-  {id:'2-5', name:'狂潮', chapter:'basics', waves:8, startGold:350, goldBonus:120,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.5, 0.3, 0.1],
+  {id:'2-5', name:'狂潮', chapter:'basics', waves:8, startGold:470, goldBonus:140,
+   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.50, 0.40, 0.25],
    desc:'全敌人BOSS战'},
   
   // 第三章：进阶篇（关卡11-15）- 属性克制
-  {id:'3-1', name:'冰火', chapter:'advanced', waves:6, startGold:340, goldBonus:130,
-   unlock:['all'], enemies:['fast','tank','destroyer'], starThresholds:[0.55, 0.35, 0.15],
+  // 起始金币: 450→420, 每波奖励: 150→190
+  {id:'3-1', name:'冰火', chapter:'advanced', waves:6, startGold:450, goldBonus:150,
+   unlock:['all'], enemies:['fast','tank','destroyer'], starThresholds:[0.50, 0.40, 0.25],
    desc:'属性克制：冰克火'},
-  {id:'3-2', name:'毒雷', chapter:'advanced', waves:7, startGold:330, goldBonus:140,
-   unlock:['all'], enemies:['tank','scout','shifter'], starThresholds:[0.5, 0.3, 0.1],
+  {id:'3-2', name:'毒雷', chapter:'advanced', waves:7, startGold:440, goldBonus:160,
+   unlock:['all'], enemies:['tank','scout','shifter'], starThresholds:[0.45, 0.35, 0.20],
    desc:'属性克制：雷克毒'},
-  {id:'3-3', name:'连锁', chapter:'advanced', waves:7, startGold:320, goldBonus:150,
-   unlock:['all'], enemies:['normal','fast','scout','destroyer'], starThresholds:[0.45, 0.25, 0.08],
+  {id:'3-3', name:'连锁', chapter:'advanced', waves:7, startGold:430, goldBonus:170,
+   unlock:['all'], enemies:['normal','fast','scout','destroyer'], starThresholds:[0.40, 0.30, 0.15],
    desc:'利用属性弱点'},
-  {id:'3-4', name:'逆克', chapter:'advanced', waves:8, startGold:310, goldBonus:160,
-   unlock:['all'], enemies:['all'], starThresholds:[0.4, 0.2, 0.05],
+  {id:'3-4', name:'逆克', chapter:'advanced', waves:8, startGold:420, goldBonus:180,
+   unlock:['all'], enemies:['all'], starThresholds:[0.35, 0.25, 0.10],
    desc:'敌人属性强化'},
-  {id:'3-5', name:'元素', chapter:'advanced', waves:9, startGold:300, goldBonus:180,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.35, 0.15, 0.03],
+  {id:'3-5', name:'元素', chapter:'advanced', waves:9, startGold:400, goldBonus:200,
+   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.30, 0.20, 0.05],
    desc:'元素BOSS战'},
   
   // 第四章：挑战篇（关卡16-20）- AI适应
-  {id:'4-1', name:'记忆', chapter:'challenge', waves:8, startGold:290, goldBonus:190,
-   unlock:['all'], enemies:['normal','fast','scout','destroyer'], starThresholds:[0.4, 0.2, 0.05],
+  // 起始金币: 380→350, 每波奖励: 210→250
+  {id:'4-1', name:'记忆', chapter:'challenge', waves:8, startGold:380, goldBonus:210,
+   unlock:['all'], enemies:['normal','fast','scout','destroyer'], starThresholds:[0.30, 0.20, 0.10],
    desc:'AI记忆你的布局'},
-  {id:'4-2', name:'适应', chapter:'challenge', waves:9, startGold:285, goldBonus:200,
-   unlock:['all'], enemies:['all'], starThresholds:[0.35, 0.15, 0.03],
+  {id:'4-2', name:'适应', chapter:'challenge', waves:9, startGold:370, goldBonus:220,
+   unlock:['all'], enemies:['all'], starThresholds:[0.25, 0.15, 0.08],
    desc:'敌人动态适应'},
-  {id:'4-3', name:'进化', chapter:'challenge', waves:10, startGold:280, goldBonus:210,
-   unlock:['all'], enemies:['all'], starThresholds:[0.3, 0.1, 0.02],
+  {id:'4-3', name:'进化', chapter:'challenge', waves:10, startGold:360, goldBonus:230,
+   unlock:['all'], enemies:['all'], starThresholds:[0.20, 0.12, 0.05],
    desc:'敌人属性进化'},
-  {id:'4-4', name:'绝境', chapter:'challenge', waves:11, startGold:275, goldBonus:220,
-   unlock:['all'], enemies:['all'], starThresholds:[0.25, 0.08, 0.01],
+  {id:'4-4', name:'绝境', chapter:'challenge', waves:11, startGold:350, goldBonus:245,
+   unlock:['all'], enemies:['all'], starThresholds:[0.15, 0.08, 0.02],
    desc:'极限挑战'},
-  {id:'4-5', name:'终焉', chapter:'challenge', waves:12, startGold:270, goldBonus:250,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.2, 0.05, 0],
+  {id:'4-5', name:'终焉', chapter:'challenge', waves:12, startGold:340, goldBonus:260,
+   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.12, 0.05, 0],
    desc:'终极BOSS战'},
   
   // 第五章：精英篇（关卡21-25）- 极限策略
-  {id:'5-1', name:'噩梦', chapter:'elite', waves:10, startGold:260, goldBonus:260,
-   unlock:['all'], enemies:['all'], starThresholds:[0.3, 0.1, 0.02],
+  // 起始金币: 320→300, 每波奖励: 270→350
+  {id:'5-1', name:'噩梦', chapter:'elite', waves:10, startGold:320, goldBonus:270,
+   unlock:['all'], enemies:['all'], starThresholds:[0.12, 0.05, 0],
    desc:'噩梦难度开始'},
-  {id:'5-2', name:'地狱', chapter:'elite', waves:11, startGold:255, goldBonus:270,
-   unlock:['all'], enemies:['all'], starThresholds:[0.25, 0.08, 0.01],
+  {id:'5-2', name:'地狱', chapter:'elite', waves:11, startGold:310, goldBonus:285,
+   unlock:['all'], enemies:['all'], starThresholds:[0.10, 0.04, 0],
    desc:'地狱级挑战'},
-  {id:'5-3', name:'深渊', chapter:'elite', waves:12, startGold:250, goldBonus:280,
-   unlock:['all'], enemies:['all'], starThresholds:[0.2, 0.05, 0],
+  {id:'5-3', name:'深渊', chapter:'elite', waves:12, startGold:305, goldBonus:300,
+   unlock:['all'], enemies:['all'], starThresholds:[0.08, 0.03, 0],
    desc:'深渊级敌人'},
-  {id:'5-4', name:'炼狱', chapter:'elite', waves:13, startGold:245, goldBonus:300,
-   unlock:['all'], enemies:['all'], starThresholds:[0.15, 0.03, 0],
+  {id:'5-4', name:'炼狱', chapter:'elite', waves:13, startGold:300, goldBonus:320,
+   unlock:['all'], enemies:['all'], starThresholds:[0.05, 0.02, 0],
    desc:'炼狱级考验'},
-  {id:'5-5', name:'封神', chapter:'elite', waves:15, startGold:240, goldBonus:350,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.1, 0.02, 0],
+  {id:'5-5', name:'封神', chapter:'elite', waves:15, startGold:300, goldBonus:350,
+   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.03, 0.01, 0],
    desc:'封神之战 - 全章节终极BOSS'}
 ];
 
@@ -541,29 +554,48 @@ let aiMemory = {
   destroyerAttacks: 0   // 破坏者攻击次数
 };
 
-// ========== V6.0 敌人系统 ==========
+// ========== V7.0 平衡敌人系统 ==========
 // 设计原则：属性弱点 + 平滑成长 + 策略应对
-// 每种敌人有元素属性，与塔形成克制关系
+// 成长曲线：hp = base × (1 + wave×0.08)^(wave/10)，平滑指数增长
 
 const ENEMY_TYPES = {
   // 普通敌人：基础货币单位，无属性弱点
+  // HP: 55→100(20波), 定位：新手练习对象
   normal: {hp:55, color:'#8BC34A', size:0.40, gold:8, speed:0.65, element:'normal'},
   
   // 快速敌人：低血高移速，被冰塔克制
+  // HP: 35→65(20波), 定位：骚扰先锋
   fast: {hp:35, color:'#42A5F5', size:0.32, gold:10, speed:1.05, element:'ice'},
   
   // 坦克敌人：高血低速，被毒塔叠加克制
-  tank: {hp:200, color:'#78909C', size:0.52, gold:22, speed:0.32, element:'poison'},
+  // HP: 180→350(20波), 定位：前排肉盾
+  tank: {hp:180, color:'#78909C', size:0.52, gold:22, speed:0.32, element:'poison'},
   
   // 破坏者：攻击墙壁，高血中速，被炮塔克制
-  destroyer: {hp:250, color:'#D32F2F', size:0.48, gold:28, speed:0.28, element:'fire', isDestroyer:true, atkDmg:80, atkSpeed:120},
+  // HP: 220→400(20波), 定位：墙壁克星
+  destroyer: {hp:220, color:'#D32F2F', size:0.48, gold:28, speed:0.28, element:'fire', isDestroyer:true, atkDmg:80, atkSpeed:1500},
   
   // 侦察兵：记忆布局，中等属性
+  // HP: 65→120(20波), 定位：情报收集
   scout: {hp:65, color:'#FFD700', size:0.36, gold:14, speed:0.70, element:'thunder', isScout:true},
   
   // 变形怪：切换属性，高机动
-  shifter: {hp:130, color:'#9C27B0', size:0.42, gold:20, speed:0.45, element:'normal', isShifter:true}
+  // HP: 120→220(20波), 定位：属性多变
+  shifter: {hp:120, color:'#9C27B0', size:0.42, gold:20, speed:0.45, element:'normal', isShifter:true}
 };
+
+// ========== V7.0 平滑成长曲线 ==========
+// 公式：hp = baseHP × (1 + wave × 0.08)^(wave / 10)
+// 效果：前期快涨，后期趋缓，避免数值爆炸
+function getEnemyHP(baseHP, wave) {
+  if(wave <= 1) return baseHP;
+  return Math.floor(baseHP * Math.pow(1 + wave * 0.08, wave / 10));
+}
+
+// 奖励曲线：随波次适度增长，保持金币购买力
+function getEnemyGold(baseGold, wave) {
+  return Math.floor(baseGold * (1 + wave * 0.05));
+}
 
 // ========== 存档系统 ==========
 function saveProgress() {
@@ -1182,21 +1214,20 @@ function weightedRandom(weights) {
 
 function createEnemyByType(type, wave) {
   const base = ENEMY_TYPES[type];
-  // V6.0: 平滑血量成长曲线（使用指数函数避免跳跃）
-  const hpMult = 1 + Math.pow(wave * 0.1, 1.15);
-  // 金币成长更平滑
-  const goldMult = 1 + wave * 0.08;
+  // V7.0: 使用平滑成长曲线
+  const hp = getEnemyHP(base.hp, wave);
+  const gold = getEnemyGold(base.gold, wave);
   
   const opts = {
     isScout: base.isScout,
     isDestroyer: base.isDestroyer,
     isShifter: base.isShifter,
     atkDmg: base.atkDmg || 0,
-    atkSpeed: base.atkSpeed || 180,
+    atkSpeed: base.atkSpeed || 1500,
     element: base.element || 'normal'
   };
   
-  return makeEnemy(base.hp * hpMult, base.color, base.size, Math.floor(base.gold * goldMult), opts, base.speed);
+  return makeEnemy(hp, base.color, base.size, gold, opts, base.speed);
 }
 
 function makeEnemy(hp, co, sz, g, opts={}, spd=0.735) {
