@@ -101,7 +101,13 @@ canvas{display:block;width:100%;height:100%}
   font-size:36px;font-weight:bold;color:var(--green);
   text-shadow:0 0 40px var(--green),0 0 80px var(--green);
   display:none;z-index:20;
-  animation:pulse 1s ease-in-out infinite;
+  animation:waveAppear 1.5s ease-out forwards;
+}
+@keyframes waveAppear{
+  0%{transform:translate(-50%,-50%) scale(0.5);opacity:0}
+  20%{transform:translate(-50%,-50%) scale(1.2);opacity:1}
+  40%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  100%{transform:translate(-50%,-50%) scale(1);opacity:0}
 }
 @keyframes pulse{
   0%,100%{transform:translate(-50%,-50%) scale(1)}
@@ -155,10 +161,16 @@ canvas{display:block;width:100%;height:100%}
   border:2px solid rgba(255,255,255,0.1);
   background:linear-gradient(145deg,#252550,#1a1a3a);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;transition:all 0.2s;
+  cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
   box-shadow:0 4px 8px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
 }
-.tower-btn:active{transform:translateY(2px)}
+/* V13.0: 悬浮效果 */
+.tower-btn:hover{
+  transform:translateY(-4px) scale(1.08);
+  border-color:rgba(255,215,0,0.6);
+  box-shadow:0 12px 30px rgba(255,215,0,0.15),0 4px 8px rgba(0,0,0,0.3);
+}
+.tower-btn:active{transform:translateY(2px) scale(0.95)}
 .tower-btn.selected{
   border-color:var(--gold);
   box-shadow:0 0 20px rgba(255,215,0,0.4),0 4px 8px rgba(0,0,0,0.3);
@@ -191,10 +203,15 @@ canvas{display:block;width:100%;height:100%}
 #actions{display:flex;gap:10px;justify-content:center}
 .act-btn{
   padding:12px 28px;border-radius:24px;border:none;
-  font-size:14px;font-weight:bold;cursor:pointer;transition:all 0.2s;
+  font-size:14px;font-weight:bold;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
   box-shadow:0 4px 15px rgba(0,0,0,0.3);
 }
-.act-btn:active{transform:translateY(2px)}
+/* V13.0: 悬浮效果 */
+.act-btn:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 25px rgba(0,0,0,0.4);
+}
+.act-btn:active{transform:translateY(2px) scale(0.98)}
 #btn-fight{
   background:linear-gradient(135deg,var(--green),var(--green-dark));
   color:#fff;
@@ -291,12 +308,14 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V9.0</h1>
-<h2>Top3品质 · 多路径寻路 · 正常速度</h2>
+<h1>🏰 迷宫塔防 V12.0</h1>
+<h2>腾讯品质 · Q版可爱 · 粒子特效</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V9.0 品质升级</h3>
-<p><b class="new">多路径</b> - 敌人可绕行备选路径</p>
+<h3>🆕 V12.0 全面升级</h3>
+<p><b class="new">Q版皮肤</b> - 可爱塔和敌人造型</p>
+<p><b class="new">粒子特效</b> - 各塔专属击杀特效</p>
+<p><b class="new">动画系统</b> - 攻击光芒+放置光环</p>
 <p><b class="new">动态寻路</b> - 封路后敌人智能响应</p>
 <p><b class="new">正常速度</b> - 18-36秒穿越路径</p>
 <p><b class="new">属性克制</b> - 火>毒>冰>雷循环</p>
