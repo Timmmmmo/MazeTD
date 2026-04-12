@@ -3,8 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V7.0 - 平衡数值</title>
+<title>迷宫塔防 V10.0 - Q版可爱风格</title>
 <style>
+/* ========== V10.0 roundRect兼容性 ========== */
+if(!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if(w < 2*r) r = w/2;
+    if(h < 2*r) r = h/2;
+    this.moveTo(x+r, y);
+    this.arcTo(x+w, y, x+w, y+h, r);
+    this.arcTo(x+w, y+h, x, y+h, r);
+    this.arcTo(x, y+h, x, y, r);
+    this.arcTo(x, y, x+w, y, r);
+    this.closePath();
+    return this;
+  };
+}
 /* ========== V14 腾讯品质美术升级 ========== */
 *{margin:0;padding:0;box-sizing:border-box;user-select:none}
 :root{
@@ -1022,16 +1036,39 @@ function renderBg(c) {
       const v = grid[y][x];
 
       if (v === 1) {
-        const wallGrad = c.createLinearGradient(px, py, px, py + CS);
-        wallGrad.addColorStop(0, '#3a3a6e');
-        wallGrad.addColorStop(0.5, '#252550');
-        wallGrad.addColorStop(1, '#1a1a3a');
-        c.fillStyle = wallGrad;
-        c.fillRect(px + 2, py + 2, CS - 4, CS - 4);
-        c.strokeStyle = 'rgba(255,255,255,0.1)';
-        c.lineWidth = 1;
-        c.strokeRect(px + 2, py + 2, CS - 4, CS - 4);
+        // ========== V10.0 Q版墙壁 - 可爱石头 ==========
+        // 主体（圆角石头）
+        c.fillStyle = '#607D8B';
+        c.beginPath();
+        c.roundRect(px + 1, py + 1, CS - 2, CS - 2, 6);
+        c.fill();
+        // 石头纹理
+        c.fillStyle = '#546E7A';
+        c.beginPath();
+        c.roundRect(px + 3, py + 3, CS * 0.4, CS * 0.3, 3);
+        c.fill();
+        c.fillStyle = '#78909C';
+        c.beginPath();
+        c.roundRect(px + CS * 0.5, py + CS * 0.4, CS * 0.4, CS * 0.25, 3);
+        c.fill();
+        // 石头高光
+        c.fillStyle = 'rgba(255,255,255,0.15)';
+        c.beginPath();
+        c.roundRect(px + 3, py + 3, CS - 6, CS * 0.3, 4);
+        c.fill();
+        // 可爱眼睛（让墙壁更生动）
+        c.fillStyle = '#fff';
+        c.beginPath();
+        c.arc(px + CS * 0.35, py + CS * 0.6, 3, 0, Math.PI * 2);
+        c.arc(px + CS * 0.65, py + CS * 0.6, 3, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#333';
+        c.beginPath();
+        c.arc(px + CS * 0.36, py + CS * 0.62, 1.5, 0, Math.PI * 2);
+        c.arc(px + CS * 0.66, py + CS * 0.62, 1.5, 0, Math.PI * 2);
+        c.fill();
       } else {
+        // 普通格子
         c.fillStyle = '#0f0f2f';
         c.fillRect(px, py, CS, CS);
         c.strokeStyle = 'rgba(255,255,255,0.03)';
@@ -2037,124 +2074,335 @@ function render() {
     }
   }
 
-// 塔图标绘制函数 - 纯Canvas几何图形
+// ========== V10.0 Q版塔绘制函数 ==========
+// 可爱卡通风格 - 大眼睛+腮红+阴影
+
+// 绘制五角星
+function drawStar(ctx, cx, cy, outerR, innerR) {
+  ctx.beginPath();
+  for(let i = 0; i < 5; i++) {
+    const outerAngle = (i * 72 - 90) * Math.PI / 180;
+    const innerAngle = ((i + 0.5) * 72 - 90) * Math.PI / 180;
+    if(i === 0) {
+      ctx.moveTo(cx + outerR * Math.cos(outerAngle), cy + outerR * Math.sin(outerAngle));
+    } else {
+      ctx.lineTo(cx + outerR * Math.cos(outerAngle), cy + outerR * Math.sin(outerAngle));
+    }
+    ctx.lineTo(cx + innerR * Math.cos(innerAngle), cy + innerR * Math.sin(innerAngle));
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+// 可爱卡通风格 - 大眼睛+腮红+阴影
 function drawTowerIcon(ctx, type, x, y, r) {
   ctx.save();
   ctx.translate(x, y);
   
+  // 阴影
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(2, r*0.7, r*0.6, r*0.2, 0, 0, Math.PI*2);
+  ctx.fill();
+  
   switch(type) {
     case 'archer':
-      // 弓箭塔 - 三角箭头
+      // 弓箭塔 - 可爱小绿人
+      // 身体（圆角矩形）
       ctx.fillStyle = '#81C784';
       ctx.beginPath();
-      ctx.moveTo(0, -r);
-      ctx.lineTo(r*0.8, r*0.6);
-      ctx.lineTo(-r*0.8, r*0.6);
+      ctx.roundRect(-r*0.5, -r*0.2, r*1, r*0.9, r*0.3);
+      ctx.fill();
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.beginPath();
+      ctx.roundRect(-r*0.4, -r*0.15, r*0.4, r*0.3, r*0.15);
+      ctx.fill();
+      // 帽子
+      ctx.fillStyle = '#4CAF50';
+      ctx.beginPath();
+      ctx.moveTo(0, -r*0.7);
+      ctx.lineTo(r*0.4, -r*0.1);
+      ctx.lineTo(-r*0.4, -r*0.1);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#4CAF50';
+      // 弓
+      ctx.strokeStyle = '#795548';
       ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, r*0.1, r*0.35, -0.8*Math.PI, 0.8*Math.PI);
       ctx.stroke();
+      // 弦
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-r*0.15, -r*0.25);
+      ctx.lineTo(-r*0.15, r*0.45);
+      ctx.stroke();
+      // 眼睛
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.2, r*0.1, r*0.18, r*0.22, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.2, r*0.1, r*0.18, r*0.22, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-r*0.18, r*0.15, r*0.1, 0, Math.PI*2);
+      ctx.arc(r*0.22, r*0.15, r*0.1, 0, Math.PI*2);
+      ctx.fill();
+      // 腮红
+      ctx.fillStyle = 'rgba(255,150,150,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.4, r*0.35, r*0.12, r*0.08, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.4, r*0.35, r*0.12, r*0.08, 0, 0, Math.PI*2);
+      ctx.fill();
       break;
       
     case 'cannon':
-      // 炮塔 - 圆形炸弹
+      // 炮塔 - 圆滚滚小红炮
+      // 身体
       ctx.fillStyle = '#EF5350';
       ctx.beginPath();
-      ctx.arc(0, 0, r*0.8, 0, Math.PI*2);
+      ctx.arc(0, r*0.1, r*0.6, 0, Math.PI*2);
       ctx.fill();
-      ctx.strokeStyle = '#F44336';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      // 引线
-      ctx.strokeStyle = '#FF9800';
-      ctx.lineWidth = 3;
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.beginPath();
-      ctx.moveTo(0, -r*0.8);
-      ctx.lineTo(r*0.3, -r*1.2);
-      ctx.stroke();
-      ctx.fillStyle = '#FFEB3B';
+      ctx.arc(-r*0.2, -r*0.15, r*0.2, 0, Math.PI*2);
+      ctx.fill();
+      // 炮管
+      ctx.fillStyle = '#B71C1C';
       ctx.beginPath();
-      ctx.arc(r*0.3, -r*1.3, r*0.15, 0, Math.PI*2);
+      ctx.roundRect(-r*0.15, -r*0.7, r*0.3, r*0.5, r*0.1);
+      ctx.fill();
+      // 炮口
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(0, -r*0.7, r*0.12, 0, Math.PI*2);
+      ctx.fill();
+      // 眼睛
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.2, r*0.1, r*0.18, r*0.22, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.2, r*0.1, r*0.18, r*0.22, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-r*0.18, r*0.15, r*0.1, 0, Math.PI*2);
+      ctx.arc(r*0.22, r*0.15, r*0.1, 0, Math.PI*2);
+      ctx.fill();
+      // 腮红
+      ctx.fillStyle = 'rgba(255,150,150,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.4, r*0.35, r*0.12, r*0.08, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.4, r*0.35, r*0.12, r*0.08, 0, 0, Math.PI*2);
       ctx.fill();
       break;
       
     case 'ice':
-      // 冰冻塔 - 雪花
+      // 冰冻塔 - 可爱雪人
+      // 身体（两个圆）
+      ctx.fillStyle = '#E3F2FD';
+      ctx.beginPath();
+      ctx.arc(0, r*0.3, r*0.4, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#BBDEFB';
+      ctx.beginPath();
+      ctx.arc(0, -r*0.3, r*0.3, 0, Math.PI*2);
+      ctx.fill();
+      // 冰晶装饰
       ctx.strokeStyle = '#4FC3F7';
       ctx.lineWidth = 2;
+      ctx.beginPath();
       for(let i=0; i<6; i++) {
         ctx.save();
         ctx.rotate(i * Math.PI/3);
-        ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.lineTo(0, -r);
-        ctx.moveTo(0, -r*0.6);
-        ctx.lineTo(r*0.3, -r*0.8);
-        ctx.moveTo(0, -r*0.6);
-        ctx.lineTo(-r*0.3, -r*0.8);
-        ctx.stroke();
+        ctx.lineTo(0, -r*0.25);
         ctx.restore();
       }
+      ctx.stroke();
+      // 围巾
+      ctx.fillStyle = '#F44336';
+      ctx.beginPath();
+      ctx.ellipse(0, r*0.05, r*0.45, r*0.12, 0, 0, Math.PI*2);
+      ctx.fill();
+      // 帽子
+      ctx.fillStyle = '#1976D2';
+      ctx.beginPath();
+      ctx.roundRect(-r*0.3, -r*0.7, r*0.6, r*0.35, r*0.1);
+      ctx.fill();
+      ctx.fillStyle = '#64B5F6';
+      ctx.beginPath();
+      ctx.arc(0, -r*0.7, r*0.3, Math.PI, 2*Math.PI);
+      ctx.fill();
+      // 眼睛
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-r*0.12, -r*0.3, r*0.08, 0, Math.PI*2);
+      ctx.arc(r*0.12, -r*0.3, r*0.08, 0, Math.PI*2);
+      ctx.fill();
+      // 腮红
+      ctx.fillStyle = 'rgba(255,150,150,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.25, -r*0.15, r*0.1, r*0.07, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.25, -r*0.15, r*0.1, r*0.07, 0, 0, Math.PI*2);
+      ctx.fill();
       break;
       
     case 'thunder':
-      // 雷电塔 - 闪电
+      // 雷电塔 - 黄色小黄人
+      // 身体
       ctx.fillStyle = '#FFD54F';
       ctx.beginPath();
-      ctx.moveTo(r*0.2, -r);
-      ctx.lineTo(-r*0.3, 0);
-      ctx.lineTo(0, 0);
-      ctx.lineTo(-r*0.2, r);
-      ctx.lineTo(r*0.3, 0);
-      ctx.lineTo(0, 0);
+      ctx.roundRect(-r*0.45, -r*0.3, r*0.9, r*0.8, r*0.25);
+      ctx.fill();
+      // 背带裤
+      ctx.fillStyle = '#1976D2';
+      ctx.fillRect(-r*0.3, r*0.1, r*0.6, r*0.35);
+      // 腰带
+      ctx.fillStyle = '#333';
+      ctx.fillRect(-r*0.35, r*0.05, r*0.7, r*0.1);
+      // 头发（闪电形状）
+      ctx.fillStyle = '#FFC107';
+      ctx.beginPath();
+      ctx.moveTo(-r*0.15, -r*0.5);
+      ctx.lineTo(-r*0.05, -r*0.3);
+      ctx.lineTo(r*0.05, -r*0.5);
+      ctx.lineTo(r*0.15, -r*0.3);
+      ctx.lineTo(r*0.25, -r*0.5);
+      ctx.lineTo(r*0.1, -r*0.25);
+      ctx.lineTo(r*0.2, -r*0.3);
+      ctx.lineTo(0, -r*0.2);
+      ctx.lineTo(-r*0.2, -r*0.3);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#FFC107';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      // 眼睛（大大眼睛）
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.18, -r*0.05, r*0.2, r*0.25, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.18, -r*0.05, r*0.2, r*0.25, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-r*0.15, 0, r*0.12, 0, Math.PI*2);
+      ctx.arc(r*0.21, 0, r*0.12, 0, Math.PI*2);
+      ctx.fill();
+      // 腮红
+      ctx.fillStyle = 'rgba(255,150,150,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.38, r*0.15, r*0.1, r*0.08, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.38, r*0.15, r*0.1, r*0.08, 0, 0, Math.PI*2);
+      ctx.fill();
       break;
       
     case 'poison':
-      // 毒塔 - 瓶子
+      // 毒塔 - 可爱绿色药水精灵
+      // 瓶身
       ctx.fillStyle = '#66BB6A';
       ctx.beginPath();
       ctx.moveTo(-r*0.5, r*0.8);
       ctx.lineTo(-r*0.5, -r*0.2);
-      ctx.quadraticCurveTo(-r*0.5, -r*0.8, 0, -r*0.8);
-      ctx.quadraticCurveTo(r*0.5, -r*0.8, r*0.5, -r*0.2);
+      ctx.quadraticCurveTo(-r*0.5, -r*0.7, 0, -r*0.7);
+      ctx.quadraticCurveTo(r*0.5, -r*0.7, r*0.5, -r*0.2);
       ctx.lineTo(r*0.5, r*0.8);
       ctx.closePath();
       ctx.fill();
+      // 瓶身高光
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.2, r*0.2, r*0.15, r*0.4, -0.2, 0, Math.PI*2);
+      ctx.fill();
       // 瓶口
       ctx.fillStyle = '#4CAF50';
-      ctx.fillRect(-r*0.25, -r, r*0.5, r*0.3);
-      // 骷髅标记
+      ctx.beginPath();
+      ctx.roundRect(-r*0.25, -r*0.9, r*0.5, r*0.25, r*0.1);
+      ctx.fill();
+      // 瓶盖
+      ctx.fillStyle = '#388E3C';
+      ctx.beginPath();
+      ctx.roundRect(-r*0.3, -r*1.1, r*0.6, r*0.25, r*0.1);
+      ctx.fill();
+      // 毒液气泡
+      ctx.fillStyle = '#A5D6A7';
+      ctx.beginPath();
+      ctx.arc(r*0.15, r*0.3, r*0.1, 0, Math.PI*2);
+      ctx.arc(r*0.05, r*0.5, r*0.08, 0, Math.PI*2);
+      ctx.arc(r*0.2, r*0.55, r*0.06, 0, Math.PI*2);
+      ctx.fill();
+      // 眼睛（精灵风格）
       ctx.fillStyle = '#fff';
       ctx.beginPath();
-      ctx.arc(0, 0, r*0.25, 0, Math.PI*2);
+      ctx.ellipse(-r*0.15, r*0.1, r*0.15, r*0.18, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.15, r*0.1, r*0.15, r*0.18, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-r*0.13, r*0.13, r*0.08, 0, Math.PI*2);
+      ctx.arc(r*0.17, r*0.13, r*0.08, 0, Math.PI*2);
+      ctx.fill();
+      // 腮红
+      ctx.fillStyle = 'rgba(255,150,150,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.35, r*0.3, r*0.1, r*0.07, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.35, r*0.3, r*0.1, r*0.07, 0, 0, Math.PI*2);
+      ctx.fill();
+      // 精灵耳朵
+      ctx.fillStyle = '#66BB6A';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.55, -r*0.1, r*0.15, r*0.25, -0.5, 0, Math.PI*2);
+      ctx.ellipse(r*0.55, -r*0.1, r*0.15, r*0.25, 0.5, 0, Math.PI*2);
       ctx.fill();
       break;
       
     case 'blocker':
-      // 阻拦塔 - 盾牌
+      // 阻拦塔 - 可爱小盾牌战士
+      // 盾牌主体
       ctx.fillStyle = '#AB47BC';
       ctx.beginPath();
-      ctx.moveTo(0, -r);
-      ctx.lineTo(r*0.9, -r*0.5);
-      ctx.lineTo(r*0.9, r*0.3);
-      ctx.quadraticCurveTo(r*0.9, r, 0, r*1.1);
-      ctx.quadraticCurveTo(-r*0.9, r, -r*0.9, r*0.3);
-      ctx.lineTo(-r*0.9, -r*0.5);
+      ctx.moveTo(0, -r*0.8);
+      ctx.lineTo(r*0.7, -r*0.4);
+      ctx.lineTo(r*0.7, r*0.2);
+      ctx.quadraticCurveTo(r*0.7, r*0.7, 0, r*0.9);
+      ctx.quadraticCurveTo(-r*0.7, r*0.7, -r*0.7, r*0.2);
+      ctx.lineTo(-r*0.7, -r*0.4);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#9C27B0';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      // 盾牌中心
+      // 盾牌高光
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.beginPath();
+      ctx.moveTo(0, -r*0.6);
+      ctx.lineTo(r*0.5, -r*0.3);
+      ctx.lineTo(r*0.5, r*0.1);
+      ctx.quadraticCurveTo(r*0.5, r*0.4, 0, r*0.5);
+      ctx.quadraticCurveTo(-r*0.3, r*0.4, -r*0.4, r*0.1);
+      ctx.lineTo(-r*0.4, -r*0.3);
+      ctx.closePath();
+      ctx.fill();
+      // 盾牌中心图案
       ctx.fillStyle = '#E1BEE7';
       ctx.beginPath();
-      ctx.arc(0, 0, r*0.35, 0, Math.PI*2);
+      ctx.arc(0, 0, r*0.3, 0, Math.PI*2);
+      ctx.fill();
+      // 星星
+      ctx.fillStyle = '#FFD54F';
+      drawStar(ctx, 0, 0, r*0.2, r*0.08);
+      // 眼睛
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.15, r*0.5, r*0.12, r*0.15, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.15, r*0.5, r*0.12, r*0.15, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(-r*0.13, r*0.52, r*0.07, 0, Math.PI*2);
+      ctx.arc(r*0.17, r*0.52, r*0.07, 0, Math.PI*2);
+      ctx.fill();
+      // 腮红
+      ctx.fillStyle = 'rgba(255,150,150,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(-r*0.35, r*0.65, r*0.08, r*0.06, 0, 0, Math.PI*2);
+      ctx.ellipse(r*0.35, r*0.65, r*0.08, r*0.06, 0, 0, Math.PI*2);
       ctx.fill();
       break;
       
