@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V10.0 - Q版可爱风格</title>
+<title>迷宫塔防 V12.0 - 动画特效版</title>
 <style>
 /* ========== V10.0 roundRect兼容性 ========== */
 if(!CanvasRenderingContext2D.prototype.roundRect) {
@@ -1210,6 +1210,8 @@ function place(x, y) {
     // 放置成功 - 塔允许建在路径上，敌人会找备用路径
     path = np;
     spawnP(ox+(x+0.5)*CS, oy+(y+0.5)*CS, t.c, 12);
+    // V12.0: 塔放置动画
+    addAnimation('place', ox+(x+0.5)*CS, oy+(y+0.5)*CS);
     showTip('✓ '+N[cur]+' 放置成功');
   } else {
     // 只有当所有路径都被阻断时才回滚
@@ -1751,6 +1753,9 @@ function loop() {
         dmgMult: dmgMult,
         element: towerElement
       });
+      
+      // V12.0: 塔攻击动画
+      addAnimation('shoot', tx, ty);
     }
   }
   
@@ -1867,6 +1872,9 @@ function loop() {
     if(dmgTexts[i].life <= 0) dmgTexts.splice(i, 1);
   }
   
+  // V12.0: 更新动画
+  updateAnimations();
+  
   render();
   requestAnimationFrame(loop);
 }
@@ -1971,6 +1979,61 @@ function screenShake(intensity=5, duration=300) {
   shakeIntensity = intensity;
   shakeDuration = duration;
   shakeStart = Date.now();
+}
+
+// V12.0: 动画效果系统
+const animations = {
+  list: []
+};
+
+function addAnimation(type, x, y) {
+  animations.list.push({
+    type, x, y,
+    life: type === 'place' ? 20 : 15,
+    maxLife: type === 'place' ? 20 : 15,
+    size: 0
+  });
+}
+
+function updateAnimations() {
+  for(let i = animations.list.length - 1; i >= 0; i--) {
+    const a = animations.list[i];
+    a.life--;
+    if(a.type === 'shoot' || a.type === 'place') {
+      a.size = (1 - a.life / a.maxLife) * 30;
+    }
+    if(a.life <= 0) {
+      animations.list.splice(i, 1);
+    }
+  }
+}
+
+function drawAnimations(ctx) {
+  for(const a of animations.list) {
+    const alpha = a.life / a.maxLife;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    
+    if(a.type === 'shoot') {
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if(a.type === 'place') {
+      ctx.strokeStyle = '#00E5FF';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, 10 + a.size, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if(a.type === 'hit') {
+      ctx.fillStyle = '#FF5722';
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, 15 * alpha, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 }
 
 // V6.0: 元素特效
@@ -2841,6 +2904,9 @@ function drawEnemyIcon(ctx, e, x, y, r) {
     ctx.lineWidth = 3;
     ctx.stroke();
   }
+  
+  // V12.0: 动画效果
+  drawAnimations(ctx);
   
   // 粒子 - 发光（V11.0使用动态大小）
   for(const p of parts) {
