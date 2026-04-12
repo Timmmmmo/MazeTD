@@ -1120,12 +1120,18 @@ function act(mx, my) {
 
 function place(x, y) {
   const t = T[cur];
-  if(grid[y][x] !== 0) {
-    showTip('⚠️ 已有物体!');
+  
+  // V9.2: 更详细的放置检查
+  if(grid[y][x] === 2) {
+    showTip('⚠️ 已有塔! 需先删除');
+    return;
+  }
+  if(grid[y][x] === 1) {
+    showTip('⚠️ 已有墙壁! 需先删除');
     return;
   }
   if(gold < t.$) {
-    showTip('⚠️ 金币不足!');
+    showTip('⚠️ 金币不足 ('+gold+'/'+t.$+')');
     return;
   }
   
@@ -1160,19 +1166,22 @@ function place(x, y) {
     });
   }
   
+  // V9.2: 改进路径检查 - 允许在路径上放置塔（敌人会绕行）
+  // 只有完全阻断路径时才回滚
   const np = findPath();
-  if(!np) {
-    // 回滚
+  if(np && np.length > 0) {
+    // 放置成功 - 塔允许建在路径上，敌人会找备用路径
+    path = np;
+    spawnP(ox+(x+0.5)*CS, oy+(y+0.5)*CS, t.c, 12);
+    showTip('✓ '+N[cur]+' 放置成功');
+  } else {
+    // 只有当所有路径都被阻断时才回滚
     grid[y][x] = 0;
     gold += t.$;
     if(cur !== 'wall') towers.pop();
     hist.pop();
-    showTip('⚠️ 不能阻断路径!');
+    showTip('⚠️ 完全阻断路径!');
     path = findPath();
-  } else {
-    path = np;
-    spawnP(ox+(x+0.5)*CS, oy+(y+0.5)*CS, t.c, 12);
-    showTip('✓ '+N[cur]+' 放置成功');
   }
   
   updateUI();
