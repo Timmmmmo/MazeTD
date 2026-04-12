@@ -1638,6 +1638,11 @@ function loop() {
         updateAIInfo();
       }
       
+      // V11.0: 敌人逃跑特效
+      if(PARTICLE_EFFECTS.leak) {
+        PARTICLE_EFFECTS.leak(e.x, e.y);
+        screenShake(8, 300);
+      }
       hp--;
       enemies.splice(i, 1);
       updateUI();
@@ -1822,7 +1827,18 @@ function loop() {
           }
         }
         
-        spawnP(b.x, b.y, b.co, 6);
+        // V11.0: 使用增强粒子效果
+        if(b.src && PARTICLE_EFFECTS[b.src.tp]) {
+          PARTICLE_EFFECTS[b.src.tp](b.x, b.y);
+        } else {
+          spawnP(b.x, b.y, b.co, 6);
+        }
+        
+        // 元素克制特效
+        if(b.dmgMult > 1 && PARTICLE_EFFECTS.weakness) {
+          PARTICLE_EFFECTS.weakness(b.x, b.y);
+        }
+        
         bullets.splice(i, 1);
         break;
       }
@@ -1857,7 +1873,7 @@ function loop() {
 
 // V6.0: 增强粒子效果
 function spawnP(x, y, co, n, opts={}) {
-  const {type='normal', spread=1, gravity=0.15} = opts;
+  const {type='normal', spread=1, gravity=0.15, sizeRange=[2,5]} = opts;
   
   for(let i=0; i<n; i++) {
     const a = Math.random() * Math.PI * 2;
@@ -1871,10 +1887,90 @@ function spawnP(x, y, co, n, opts={}) {
       vz: Math.sin(b) * s * 0.3,
       co,
       l: 25 + Math.random() * 20,
-      sz: 2 + Math.random() * 5,
-      gravity: gravity
+      sz: sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]),
+      gravity: gravity,
+      type: type
     });
   }
+}
+
+// V11.0: 各类型粒子特效增强
+const PARTICLE_EFFECTS = {
+  // 弓箭塔 - 绿色光点
+  archer: (x, y) => {
+    spawnP(x, y, '#4CAF50', 3, {spread:0.5, sizeRange:[1,3]});
+    spawnP(x, y, '#8BC34A', 2, {spread:0.3, sizeRange:[2,4]});
+  },
+  // 炮塔 - 橙色爆炸
+  cannon: (x, y) => {
+    spawnP(x, y, '#FF5722', 5, {spread:1, sizeRange:[3,6], gravity:0.3});
+    spawnP(x, y, '#FF9800', 4, {spread:0.8, sizeRange:[2,5]});
+    spawnP(x, y, '#FFC107', 3, {spread:0.5, sizeRange:[1,3]});
+    spawnP(x, y, '#FFD700', 2, {spread:0.3, sizeRange:[1,2]});
+  },
+  // 冰塔 - 蓝色冰晶
+  ice: (x, y) => {
+    spawnP(x, y, '#03A9F4', 4, {spread:0.8, sizeRange:[2,5]});
+    spawnP(x, y, '#4FC3F7', 3, {spread:0.6, sizeRange:[1,3]});
+    spawnP(x, y, '#B3E5FC', 2, {spread:0.4, sizeRange:[1,2]});
+    spawnP(x, y, '#E1F5FE', 2, {spread:0.3, sizeRange:[0.5,1.5]});
+  },
+  // 毒塔 - 绿色毒雾
+  poison: (x, y) => {
+    spawnP(x, y, '#8BC34A', 4, {spread:0.8, sizeRange:[2,4], gravity:0.05});
+    spawnP(x, y, '#CDDC39', 3, {spread:0.6, sizeRange:[1,3], gravity:0.08});
+    spawnP(x, y, '#F0F4C3', 2, {spread:0.4, sizeRange:[2,5], gravity:0.03});
+  },
+  // 雷电塔 - 金色闪电
+  thunder: (x, y) => {
+    spawnP(x, y, '#FFC107', 5, {spread:0.6, sizeRange:[1,3]});
+    spawnP(x, y, '#FFEB3B', 4, {spread:0.5, sizeRange:[1,2]});
+    spawnP(x, y, '#FFF8E1', 3, {spread:0.3, sizeRange:[0.5,1.5]});
+  },
+  // 敌人死亡 - 金币
+  kill: (x, y, isBoss=false) => {
+    spawnP(x, y, '#FFD700', isBoss ? 40 : 20, {spread: 1.5, sizeRange:[3,8]});
+    if(isBoss) {
+      spawnP(x, y, '#AB47BC', 30, {spread: 2, sizeRange:[4,10], gravity:0.2});
+      spawnP(x, y, '#FFD700', 20, {spread: 2.5, sizeRange:[2,5]});
+      spawnP(x, y, '#E040FB', 15, {spread: 2, sizeRange:[3,7]});
+    }
+  },
+  // 塔放置 - 星光
+  place: (x, y) => {
+    spawnP(x, y, '#00E5FF', 8, {spread: 1, sizeRange:[2,4]});
+    spawnP(x, y, '#E1BEE7', 5, {spread: 0.8, sizeRange:[1,3]});
+    spawnP(x, y, '#fff', 3, {spread: 0.5, sizeRange:[1,2]});
+  },
+  // 敌人逃跑 - 红色警告
+  leak: (x, y) => {
+    spawnP(x, y, '#FF1744', 10, {spread: 1.5, sizeRange:[2,5], gravity:0.1});
+    spawnP(x, y, '#FF5722', 8, {spread: 1.2, sizeRange:[1,4]});
+    spawnP(x, y, '#D50000', 5, {spread: 1, sizeRange:[2,6], gravity:0.2});
+  },
+  // BOSS登场 - 震撼效果
+  bossAppear: (x, y) => {
+    spawnP(x, y, '#E040FB', 20, {spread: 2, sizeRange:[4,10], gravity:0.15});
+    spawnP(x, y, '#AA00FF', 15, {spread: 1.8, sizeRange:[3,8]});
+    spawnP(x, y, '#FFD700', 25, {spread: 2.5, sizeRange:[2,6]});
+    spawnP(x, y, '#fff', 10, {spread: 1, sizeRange:[1,3]});
+    screenShake(10, 500);
+  },
+  // 元素克制 - 彩虹爆发
+  weakness: (x, y) => {
+    const rainbow = ['#FF5252', '#FF9800', '#FFEB3B', '#4CAF50', '#2196F3', '#9C27B0'];
+    rainbow.forEach((c, i) => {
+      spawnP(x, y, c, 3, {spread: 0.8 + i*0.1, sizeRange:[2,5]});
+    });
+  }
+};
+
+// V11.0: 屏幕震动
+let shakeIntensity = 0, shakeDuration = 0, shakeStart = 0;
+function screenShake(intensity=5, duration=300) {
+  shakeIntensity = intensity;
+  shakeDuration = duration;
+  shakeStart = Date.now();
 }
 
 // V6.0: 元素特效
@@ -1895,16 +1991,29 @@ function spawnElementP(x, y, element, count=15) {
 
 // V6.0: 击杀特效
 function spawnKillEffect(x, y, isBoss=false) {
-  spawnP(x, y, '#FFD700', isBoss ? 40 : 20, {spread: 1.5});
-  if(isBoss) {
-    spawnP(x, y, '#AB47BC', 30, {spread: 2});
-    spawnP(x, y, '#FFD700', 20, {spread: 2.5});
+  if(PARTICLE_EFFECTS.kill) {
+    PARTICLE_EFFECTS.kill(x, y, isBoss);
   }
 }
 
 // ========== V14 腾讯品质渲染 ==========
 function render() {
   if(!ctx || W===0 || H===0) return;
+  
+  // V11.0: 屏幕震动效果
+  if(shakeIntensity > 0 && shakeDuration > 0) {
+    const elapsed = Date.now() - shakeStart;
+    if(elapsed < shakeDuration) {
+      const decay = 1 - (elapsed / shakeDuration);
+      const offsetX = (Math.random() - 0.5) * shakeIntensity * decay * 2;
+      const offsetY = (Math.random() - 0.5) * shakeIntensity * decay * 2;
+      ctx.save();
+      ctx.translate(offsetX, offsetY);
+    } else {
+      shakeIntensity = 0;
+      shakeDuration = 0;
+    }
+  }
   
   // V4.1: 离屏背景缓存
   if(bgCtx && bgDirty) {
@@ -2733,13 +2842,14 @@ function drawEnemyIcon(ctx, e, x, y, r) {
     ctx.stroke();
   }
   
-  // 粒子 - 发光
+  // 粒子 - 发光（V11.0使用动态大小）
   for(const p of parts) {
     ctx.globalAlpha = p.l/p.ml;
     ctx.shadowColor = p.co;
     ctx.shadowBlur = 5;
+    const pSize = p.sz || 3; // 使用粒子自带的sz属性
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.arc(p.x, p.y, pSize, 0, Math.PI*2);
     ctx.fillStyle = p.co;
     ctx.fill();
     ctx.shadowBlur = 0;
@@ -2758,6 +2868,11 @@ function drawEnemyIcon(ctx, e, x, y, r) {
     ctx.shadowBlur = 0;
   }
   ctx.globalAlpha = 1;
+  
+  // V11.0: 恢复屏幕震动偏移
+  if(shakeIntensity > 0) {
+    ctx.restore();
+  }
 }
 
 function spawnP(x, y, c, n) {
