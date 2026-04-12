@@ -277,21 +277,21 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V6.0</h1>
-<h2>Top3品质 · 属性克制 · 25关挑战</h2>
+<h1>🏰 迷宫塔防 V9.0</h1>
+<h2>Top3品质 · 多路径寻路 · 正常速度</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V6.0 腾讯品质升级</h3>
-<p><b class="new">属性系统</b> - 火>毒>冰>雷循环克制</p>
-<p><b class="new">元素BOSS</b> - 每章节终极挑战</p>
-<p><b class="new">25关剧情</b> - 5章渐进式难度</p>
-<p><b class="new">智能AI</b> - 敌人动态适应策略</p>
-<p><b class="new">3D粒子</b> - 腾讯级视觉特效</p>
+<h3>🆕 V9.0 品质升级</h3>
+<p><b class="new">多路径</b> - 敌人可绕行备选路径</p>
+<p><b class="new">动态寻路</b> - 封路后敌人智能响应</p>
+<p><b class="new">正常速度</b> - 18-36秒穿越路径</p>
+<p><b class="new">属性克制</b> - 火>毒>冰>雷循环</p>
+<p><b class="new">智能AI</b> - 侦察兵记忆危险区域</p>
 <p><b>🔥 克制关系</b></p>
-<p>· 火(炮塔)被冰/毒克制</p>
-<p>· 冰(冰塔)被火/雷克制</p>
-<p>· 毒(毒塔)被冰/弓箭克制</p>
-<p>· 雷(雷电塔)克制毒系敌人</p>
+<p>· 炮塔(🔥)被冰/毒克制</p>
+<p>· 冰塔(❄️)被火/雷克制</p>
+<p>· 毒塔(☠️)被冰/弓箭克制</p>
+<p>· 雷电塔(⚡)克制毒系敌人</p>
 </div>
 </div>
 <div id="game">
@@ -558,30 +558,40 @@ let aiMemory = {
 // 设计原则：属性弱点 + 平滑成长 + 策略应对
 // 成长曲线：hp = base × (1 + wave×0.08)^(wave/10)，平滑指数增长
 
+// ========== V9.0 敌人速度调优 ==========
+// 目标：正常游戏速度，路径耗时10-20秒
+// 速度单位：格/秒，正常敌人约0.3格/秒 = 20秒穿越12格路径
+
 const ENEMY_TYPES = {
   // 普通敌人：基础货币单位，无属性弱点
   // HP: 55→100(20波), 定位：新手练习对象
-  normal: {hp:55, color:'#8BC34A', size:0.40, gold:8, speed:0.65, element:'normal'},
+  // 速度：穿越12格路径约18秒
+  normal: {hp:55, color:'#8BC34A', size:0.40, gold:8, speed:0.35, element:'normal'},
   
   // 快速敌人：低血高移速，被冰塔克制
   // HP: 35→65(20波), 定位：骚扰先锋
-  fast: {hp:35, color:'#42A5F5', size:0.32, gold:10, speed:1.05, element:'ice'},
+  // 速度：约普通敌人的1.5倍，约12秒穿越
+  fast: {hp:35, color:'#42A5F5', size:0.32, gold:10, speed:0.52, element:'ice'},
   
   // 坦克敌人：高血低速，被毒塔叠加克制
   // HP: 180→350(20波), 定位：前排肉盾
-  tank: {hp:180, color:'#78909C', size:0.52, gold:22, speed:0.32, element:'poison'},
+  // 速度：约普通敌人的50%，约36秒穿越
+  tank: {hp:180, color:'#78909C', size:0.52, gold:22, speed:0.18, element:'poison'},
   
   // 破坏者：攻击墙壁，高血中速，被炮塔克制
   // HP: 220→400(20波), 定位：墙壁克星
-  destroyer: {hp:220, color:'#D32F2F', size:0.48, gold:28, speed:0.28, element:'fire', isDestroyer:true, atkDmg:80, atkSpeed:1500},
+  // 速度：比坦克稍快，约24秒穿越
+  destroyer: {hp:220, color:'#D32F2F', size:0.48, gold:28, speed:0.14, element:'fire', isDestroyer:true, atkDmg:80, atkSpeed:1500},
   
   // 侦察兵：记忆布局，中等属性
   // HP: 65→120(20波), 定位：情报收集
-  scout: {hp:65, color:'#FFD700', size:0.36, gold:14, speed:0.70, element:'thunder', isScout:true},
+  // 速度：与普通敌人相近
+  scout: {hp:65, color:'#FFD700', size:0.36, gold:14, speed:0.35, element:'thunder', isScout:true},
   
   // 变形怪：切换属性，高机动
   // HP: 120→220(20波), 定位：属性多变
-  shifter: {hp:120, color:'#9C27B0', size:0.42, gold:20, speed:0.45, element:'normal', isShifter:true}
+  // 速度：介于普通和坦克之间
+  shifter: {hp:120, color:'#9C27B0', size:0.42, gold:20, speed:0.22, element:'normal', isShifter:true}
 };
 
 // ========== V7.0 平滑成长曲线 ==========
@@ -1309,13 +1319,14 @@ function spawnWave() {
     for(let i = 0; i < cnt; i++) {
       const etype = weightedRandom(typeWeights);
       
-      // 分批出怪，增加节奏感
+      // V9.0: 出怪间隔与敌人速度匹配
+      // 敌人速度降低后，适当拉长出怪间隔，让玩家有时间
       setTimeout(() => {
         if(fighting) {
           const e = createEnemyByType(etype, wave);
           enemies.push(e);
         }
-      }, i * (300 - Math.min(wave * 10, 150))); // 波次越高，出怪越快
+      }, i * (500 - Math.min(wave * 8, 200))); // 波次越高，出怪越快，但有下限
     }
   }
   
@@ -1368,8 +1379,8 @@ function createEnemyByType(type, wave) {
   return makeEnemy(hp, base.color, base.size, gold, opts, base.speed);
 }
 
-function makeEnemy(hp, co, sz, g, opts={}, spd=0.735) {
-  // V8.0: 使用增强寻路系统
+function makeEnemy(hp, co, sz, g, opts={}, spd=0.35) {
+  // V9.0: 使用增强寻路系统，默认速度0.35格/秒（正常游戏速度）
   const pathInfo = {
     path: null,
     isSafe: false,
