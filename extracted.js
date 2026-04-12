@@ -1,531 +1,54 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V5.0 - 腾讯品质</title>
-<style>
-/* ========== V14 腾讯品质美术升级 ========== */
-*{margin:0;padding:0;box-sizing:border-box;user-select:none}
-:root{
-  --gold:#FFD700;--gold-light:#FFE55C;--gold-dark:#B8860B;
-  --green:#00E676;--green-dark:#00C853;
-  --red:#FF1744;--red-dark:#D50000;
-  --cyan:#00E5FF;--cyan-dark:#00B8D4;
-  --purple:#E040FB;--purple-dark:#AA00FF;
-  --orange:#FF9100;--orange-dark:#FF6D00;
-  --blue:#2979FF;--blue-dark:#2962FF;
-}
-html,body{height:100%;overflow:hidden}
-body{
-  background:radial-gradient(ellipse at center,#1a1a3e 0%,#0d0d1f 50%,#050510 100%);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  touch-action:none;
-}
-#game{width:100%;height:100dvh;display:none;flex-direction:column}
 
-/* 顶部状态栏 - 玻璃拟态 */
-#top{
-  flex-shrink:0;height:56px;
-  background:linear-gradient(180deg,rgba(30,30,60,0.95) 0%,rgba(20,20,40,0.9) 100%);
-  backdrop-filter:blur(20px);
-  display:flex;align-items:center;justify-content:space-around;
-  border-bottom:2px solid rgba(255,215,0,0.4);
-  box-shadow:0 4px 20px rgba(0,0,0,0.5);
-}
-.stat{
-  display:flex;align-items:center;gap:6px;
-  font-size:13px;color:#aaa;
-  background:rgba(255,255,255,0.05);
-  padding:6px 12px;border-radius:20px;
-  border:1px solid rgba(255,255,255,0.1);
-}
-.stat b{
-  color:var(--gold);font-size:20px;
-  text-shadow:0 0 10px rgba(255,215,0,0.5);
-}
-
-/* 画布区域 */
-#canvas-box{flex:1;min-height:0;position:relative;overflow:hidden}
-canvas{display:block;width:100%;height:100%}
-
-/* 入口出口标记 - 发光效果 */
-#entry-mark,#exit-mark{
-  position:absolute;left:50%;transform:translateX(-50%);
-  padding:6px 18px;border-radius:20px;
-  font-size:12px;font-weight:bold;z-index:10;
-  box-shadow:0 4px 15px rgba(0,0,0,0.4);
-  border:2px solid rgba(255,255,255,0.3);
-}
-#entry-mark{
-  top:10px;
-  background:linear-gradient(135deg,var(--green-dark),var(--green));
-  color:#fff;
-  box-shadow:0 0 20px rgba(0,230,118,0.5),0 4px 15px rgba(0,0,0,0.4);
-}
-#exit-mark{
-  bottom:10px;
-  background:linear-gradient(135deg,var(--red-dark),var(--red));
-  color:#fff;
-  box-shadow:0 0 20px rgba(255,23,68,0.5),0 4px 15px rgba(0,0,0,0.4);
-}
-
-/* 提示框 */
-#tip{
-  position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);
-  background:linear-gradient(135deg,rgba(0,0,0,0.95),rgba(20,20,40,0.95));
-  color:#fff;padding:14px 24px;border-radius:16px;font-size:15px;z-index:30;
-  opacity:0;transition:opacity 0.3s;
-  border:1px solid rgba(255,215,0,0.3);
-  box-shadow:0 8px 32px rgba(0,0,0,0.5);
-}
-#tip.show{opacity:1}
-
-/* 波次消息 - 震撼效果 */
-#wave-msg{
-  position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);
-  font-size:36px;font-weight:bold;color:var(--green);
-  text-shadow:0 0 40px var(--green),0 0 80px var(--green);
-  display:none;z-index:20;
-  animation:pulse 1s ease-in-out infinite;
-}
-@keyframes pulse{
-  0%,100%{transform:translate(-50%,-50%) scale(1)}
-  50%{transform:translate(-50%,-50%) scale(1.05)}
-}
-
-/* 信息面板 - 玻璃拟态 */
-#info,#ai-info{
-  position:absolute;top:60px;
-  background:rgba(20,20,40,0.9);
-  backdrop-filter:blur(15px);
-  border-radius:12px;padding:12px;font-size:12px;color:#aaa;
-  z-index:10;
-  border:1px solid rgba(255,255,255,0.1);
-  box-shadow:0 4px 20px rgba(0,0,0,0.3);
-}
-#info{right:10px;max-width:150px;border-left:3px solid var(--cyan)}
-#ai-info{left:10px;max-width:140px;border-left:3px solid var(--purple)}
-#info h4{color:var(--cyan);margin-bottom:6px;font-size:13px;font-weight:600}
-#ai-info h4{color:var(--purple);margin-bottom:6px;font-size:13px;font-weight:600}
-#info b,#ai-info b{color:var(--gold);font-weight:600}
-.good{color:var(--green)!important;text-shadow:0 0 5px rgba(0,230,118,0.5)}
-.bad{color:var(--red)!important;text-shadow:0 0 5px rgba(255,23,68,0.5)}
-
-/* 底部控制栏 */
-#bottom{
-  flex-shrink:0;
-  background:linear-gradient(180deg,rgba(30,30,60,0.95) 0%,rgba(15,15,30,0.95) 100%);
-  border-top:2px solid rgba(255,215,0,0.3);
-  padding:10px;display:flex;flex-direction:column;gap:8px;
-  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
-  box-shadow:0 -4px 20px rgba(0,0,0,0.3);
-}
-#current-tool{
-  height:28px;
-  background:rgba(0,0,0,0.4);
-  border-radius:10px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;color:#888;
-  border:1px solid rgba(255,255,255,0.1);
-}
-#current-tool b{color:var(--gold);font-weight:600}
-
-/* 塔按钮 - 3D质感 */
-#tower-panel{
-  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
-  padding:6px;background:rgba(0,0,0,0.3);border-radius:12px;
-}
-.tower-btn{
-  width:48px;height:52px;border-radius:12px;
-  border:2px solid rgba(255,255,255,0.1);
-  background:linear-gradient(145deg,#252550,#1a1a3a);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;transition:all 0.2s;
-  box-shadow:0 4px 8px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
-}
-.tower-btn:active{transform:translateY(2px)}
-.tower-btn.selected{
-  border-color:var(--gold);
-  box-shadow:0 0 20px rgba(255,215,0,0.4),0 4px 8px rgba(0,0,0,0.3);
-  background:linear-gradient(145deg,#3a3a6e,#252550);
-}
-.tower-btn .icon{font-size:18px}
-.tower-btn .price{font-size:11px;color:var(--gold);font-weight:bold}
-.tower-btn .name{font-size:9px;color:#888}
-.tower-btn.disabled{opacity:0.3;pointer-events:none}
-.tower-btn.new-tower{border-color:var(--purple);box-shadow:0 0 10px rgba(224,64,251,0.3)}
-
-/* 工具按钮 */
-#toolbar{display:flex;gap:10px;justify-content:center}
-.tool-btn{
-  width:60px;height:42px;border-radius:10px;
-  border:2px solid rgba(255,255,255,0.1);
-  background:linear-gradient(145deg,#252550,#1a1a3a);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;transition:all 0.2s;
-  box-shadow:0 4px 8px rgba(0,0,0,0.3);
-}
-.tool-btn.selected{
-  border-color:var(--gold);
-  box-shadow:0 0 15px rgba(255,215,0,0.3);
-}
-.tool-btn .icon{font-size:16px}
-.tool-btn .name{font-size:11px;color:#aaa}
-
-/* 操作按钮 - 渐变发光 */
-#actions{display:flex;gap:10px;justify-content:center}
-.act-btn{
-  padding:12px 28px;border-radius:24px;border:none;
-  font-size:14px;font-weight:bold;cursor:pointer;transition:all 0.2s;
-  box-shadow:0 4px 15px rgba(0,0,0,0.3);
-}
-.act-btn:active{transform:translateY(2px)}
-#btn-fight{
-  background:linear-gradient(135deg,var(--green),var(--green-dark));
-  color:#fff;
-  box-shadow:0 4px 20px rgba(0,230,118,0.4);
-}
-#btn-undo{
-  background:linear-gradient(135deg,var(--orange),var(--orange-dark));
-  color:#fff;
-  box-shadow:0 4px 20px rgba(255,145,0,0.4);
-}
-#btn-clear{
-  background:linear-gradient(135deg,#546E7A,#37474F);
-  color:#fff;
-}
-
-/* 菜单 - 沉浸式背景 */
-#menu{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse at center,#2a2a5e 0%,#151530 50%,#0a0a1a 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  z-index:100;padding:24px;
-}
-#menu h1{
-  color:var(--cyan);font-size:32px;margin-bottom:8px;
-  text-shadow:0 0 30px rgba(0,229,255,0.5);
-  font-weight:700;
-}
-#menu h2{
-  color:#888;font-size:16px;margin-bottom:28px;font-weight:400;
-  letter-spacing:2px;
-}
-.menu-btn{
-  width:200px;padding:16px;margin:10px 0;
-  background:linear-gradient(145deg,#3a3a6e,#252550);
-  border:2px solid rgba(255,215,0,0.3);
-  color:#fff;border-radius:16px;font-size:17px;cursor:pointer;transition:all 0.2s;
-  box-shadow:0 6px 20px rgba(0,0,0,0.4);
-}
-.menu-btn:hover{
-  border-color:var(--gold);
-  box-shadow:0 0 30px rgba(255,215,0,0.3),0 6px 20px rgba(0,0,0,0.4);
-}
-.guide{
-  margin-top:28px;padding:18px;
-  background:rgba(0,0,0,0.4);
-  border-radius:16px;max-width:320px;text-align:left;
-  border:1px solid rgba(255,255,255,0.1);
-  backdrop-filter:blur(10px);
-}
-.guide h3{color:var(--cyan);font-size:15px;margin-bottom:12px;font-weight:600}
-.guide p{color:#bbb;font-size:13px;margin:8px 0;line-height:1.7}
-.guide b{color:var(--gold)}
-.guide .new{color:var(--purple)}
-
-/* 结束画面 */
-#over,#level-complete{
-  position:absolute;inset:0;
-  background:radial-gradient(ellipse at center,rgba(20,20,40,0.98) 0%,rgba(5,5,15,0.99) 100%);
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  z-index:90;padding:24px;
-  backdrop-filter:blur(20px);
-}
-#over h1{font-size:40px;color:var(--red);margin-bottom:24px;text-shadow:0 0 40px rgba(255,23,68,0.5)}
-#level-complete h1{font-size:36px;color:var(--green);margin-bottom:20px;text-shadow:0 0 40px rgba(0,230,118,0.5)}
-#over b,#level-complete b{color:var(--gold);font-size:18px}
-
-/* V4.1: 塔升级按钮 */
-.upgrade-btn{
-  position:absolute;padding:6px 14px;border-radius:12px;
-  font-size:11px;font-weight:bold;cursor:pointer;z-index:50;
-  border:none;transition:all 0.2s;pointer-events:auto;
-}
-.upgrade-btn:active{transform:scale(0.95);}
-#upgrade-panel{
-  position:absolute;display:none;z-index:60;
-  background:rgba(20,20,40,0.97);border:2px solid #FFD700;
-  border-radius:14px;padding:12px;min-width:160px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.6);
-}
-#upgrade-panel .up-info{color:#ccc;font-size:12px;margin-bottom:8px;text-align:center}
-#upgrade-panel .up-btn{
-  width:100%;padding:8px;margin-top:6px;border:none;border-radius:10px;
-  background:linear-gradient(135deg,#FFD700,#FFA500);color:#1a1a3e;
-  font-weight:bold;font-size:13px;cursor:pointer;
-}
-#upgrade-panel .up-btn:hover{background:linear-gradient(135deg,#FFE55C,#FFB300);}
-#upgrade-panel .up-btn:disabled{opacity:0.4;cursor:not-allowed;}
-#upgrade-panel .close-btn{
-  position:absolute;top:4px;right:8px;background:none;border:none;
-  color:#888;font-size:16px;cursor:pointer;
-}
-
-</style>
-</head>
-<body>
-<div id="menu">
-<h1>🏰 迷宫塔防 V6.0</h1>
-<h2>Top3品质 · 属性克制 · 25关挑战</h2>
-<button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
-<div class="guide">
-<h3>🆕 V6.0 腾讯品质升级</h3>
-<p><b class="new">属性系统</b> - 火>毒>冰>雷循环克制</p>
-<p><b class="new">元素BOSS</b> - 每章节终极挑战</p>
-<p><b class="new">25关剧情</b> - 5章渐进式难度</p>
-<p><b class="new">智能AI</b> - 敌人动态适应策略</p>
-<p><b class="new">3D粒子</b> - 腾讯级视觉特效</p>
-<p><b>🔥 克制关系</b></p>
-<p>· 火(炮塔)被冰/毒克制</p>
-<p>· 冰(冰塔)被火/雷克制</p>
-<p>· 毒(毒塔)被冰/弓箭克制</p>
-<p>· 雷(雷电塔)克制毒系敌人</p>
-</div>
-</div>
-<div id="game">
-<div id="top">
-<span class="stat">💰<b id="show-gold">400</b></span>
-<span class="stat">🌊<b id="show-wave">0</b></span>
-<span class="stat">❤️<b id="show-hp">20</b></span>
-<span class="stat">🏆<b id="show-level">1-1</b></span>
-</div>
-<div id="canvas-box">
-<div id="upgrade-panel">
-  <button class="close-btn" onclick="closeUpgradePanel()">×</button>
-  <div class="up-info" id="up-info">选择一座塔</div>
-  <button class="up-btn" id="up-btn" onclick="doUpgradeFromPanel()">升级 (0 金)</button>
-</div>
-
-<canvas id="cv"></canvas>
-<div id="entry-mark">🟢 入口</div>
-<div id="exit-mark">🔴 出口</div>
-<div id="tip"></div>
-<div id="wave-msg"></div>
-<div id="info">
-<h4>📊 路径</h4>
-<p>长: <b id="show-length">-</b></p>
-<p>弯: <b id="show-turns">-</b></p>
-<p>效: <b id="show-efficiency">-</b></p>
-</div>
-<div id="ai-info">
-<h4>🧠 AI情报</h4>
-<p>侦察: <b id="show-scouts">0</b></p>
-<p>破坏者: <b id="show-destroyers">0</b></p>
-<p>记忆点: <b id="show-memory">0</b></p>
-</div>
-</div>
-<div id="bottom">
-<div id="current-tool">选择: <b id="tool-name">弓箭塔</b> <span id="tool-cost">70金</span></div>
-<div id="tower-panel">
-<div class="tower-btn selected" data-type="archer" onclick="pickTower('archer')"><canvas class="icon-cv" data-tower="archer" width="24" height="24"></canvas><span class="price">50</span><span class="name">弓箭</span></div>
-<div class="tower-btn" data-type="ice" onclick="pickTower('ice')"><canvas class="icon-cv" data-tower="ice" width="24" height="24"></canvas><span class="price">70</span><span class="name">冰冻</span></div>
-<div class="tower-btn" data-type="cannon" onclick="pickTower('cannon')"><canvas class="icon-cv" data-tower="cannon" width="24" height="24"></canvas><span class="price">110</span><span class="name">炮塔</span></div>
-<div class="tower-btn" data-type="poison" onclick="pickTower('poison')"><canvas class="icon-cv" data-tower="poison" width="24" height="24"></canvas><span class="price">85</span><span class="name">毒塔</span></div>
-<div class="tower-btn" data-type="thunder" onclick="pickTower('thunder')"><canvas class="icon-cv" data-tower="thunder" width="24" height="24"></canvas><span class="price">130</span><span class="name">雷电</span></div>
-<div class="tower-btn" data-type="wall" onclick="pickTower('wall')"><canvas class="icon-cv" data-tower="wall" width="24" height="24"></canvas><span class="price">15</span><span class="name">墙壁</span></div>
-</div>
-<div id="toolbar">
-<div class="tool-btn selected" id="tool-place" onclick="setTool('place')"><span class="icon">📍</span><span class="name">放置</span></div>
-<div class="tool-btn" id="tool-delete" onclick="setTool('delete')"><span class="icon">🗑️</span><span class="name">删除</span></div>
-</div>
-<div id="actions">
-<button class="act-btn" id="btn-fight" onclick="toggleBattle()">⚔️ 开战</button>
-<button class="act-btn" id="btn-undo" onclick="undoLast()">↩️ 撤销</button>
-<button class="act-btn" id="btn-clear" onclick="clearAll()">🗑️ 清空</button>
-</div>
-</div>
-</div>
-<div id="over">
-<h1>💀 游戏结束</h1>
-<p>波次: <b id="final-wave">0</b></p>
-<p>击杀: <b id="final-kills">0</b></p>
-<button class="menu-btn" onclick="startGame()" style="margin-top:20px">🔄 再来一局</button>
-</div>
-<div id="level-complete">
-<h1>🎉 关卡完成！</h1>
-<p>星级: <b id="stars">⭐⭐⭐</b></p>
-<p>奖励: <b id="bonus-gold">0</b>金</p>
-<button class="menu-btn" onclick="nextLevel()" style="margin-top:16px">➡️ 下一关</button>
-</div>
-<script>
-// ========== V6.0 Top3品质数值系统 ==========
-// 设计原则：属性克制 + 策略博弈 + 平滑曲线
-// 预期：每种塔有独特定位，敌人有弱点，资源紧张
-
+// ========== 基础配置 ==========
 const CS=40, COLS=8, ROWS=12, ENTRY={x:1,y:0}, EXIT={x:COLS-2,y:ROWS-1};
-const FPS = 60; // 统一帧率基准
 
-// 属性系统：火>毒>冰>雷>火（循环克制）
-// 克制关系：弓箭=普通, 炮=火, 冰=冰, 毒=毒, 雷=雷
-const ELEMENT_BONUS = {
-  normal: {weakTo: [], bonus: 1.0},
-  fire: {weakTo: ['ice', 'poison'], bonus: 1.5},    // 火被冰/毒克制
-  ice: {weakTo: ['fire', 'thunder'], bonus: 1.5},   // 冰被火/雷克制
-  poison: {weakTo: ['ice', 'archer'], bonus: 1.5},  // 毒被冰/弓箭克制
-  thunder: {weakTo: ['poison'], bonus: 1.8}          // 雷克制毒（连锁效果）
-};
+// ========== V2.0 数值系统 - 参考腾讯TOP塔防 ==========
+// 设计原则：易上手难精通、策略多样、资源约束
 
-// 塔配置 - V6.0数值平衡
-// 公式：DPS = 伤害 / 攻击间隔秒数
-// 目标：各塔DPS接近，但有克制差异
+// 塔配置 - 精心平衡的数值
 const T = {
-  // 弓箭塔：均衡型，单体稳定输出
-  // 定位：新手之友，适合清理普通敌人
-  archer: {c:'#4CAF50', element:'archer', d:15, r:4.2, s:900, $:60, dps:16.7, rangeType:'single'},
-  
-  // 冰冻塔：控制型，减速+持续伤害
-  // 定位：核心控场，被火/雷克制，克制毒/快速敌人
-  ice: {c:'#03A9F4', element:'ice', d:8, r:3.5, s:1200, $:80, dps:6.7, slow:0.6, slowDur:180},
-  
-  // 炮塔：AOE型，高爆发群体伤害
-  // 定位：清怪神器，被冰/毒克制，适合密集敌人
-  cannon: {c:'#F44336', element:'fire', d:28, r:2.5, s:1500, $:120, dps:18.7, aoe:1.2},
-  
-  // 毒塔：持续型，叠加伤害
-  // 定位：坦克克星，被冰/弓箭克制，适合高血量敌人
-  poison: {c:'#8BC34A', element:'poison', d:4, r:3.0, s:600, $:90, dps:6.7, dot:8, dotStacks:5, dotDur:240},
-  
-  // 雷电塔：连锁型，高加成AOE
-  // 定位：精英杀手，被毒克制，克制毒/密集敌人
-  thunder: {c:'#FFC107', element:'thunder', d:20, r:3.2, s:1100, $:140, dps:18.2, chain:4, chainMult:0.7},
-  
-  // 墙壁：基础防御
-  wall: {c:'#78909C', d:0, r:0, s:0, $:20, hp:500, maxHp:500, isWall:true, armor:0.1}
+  // V5.0 精简塔系统 - 5种核心塔
+  archer: {c:'#4CAF50', d:18, r:4.0, s:35, $:50},
+  ice: {c:'#03A9F4', d:6, r:3.2, s:45, $:70, slow:0.5},
+  cannon: {c:'#F44336', d:35, r:2.8, s:80, $:110, aoe:1.3},
+  poison: {c:'#8BC34A', d:5, r:2.8, s:30, $:85, dot:12, dotTime:5},
+  thunder: {c:'#FFC107', d:25, r:3.0, s:45, $:130, chain:3},
+  wall: {c:'#78909C', d:0, r:0, s:0, $:15, hp:600, maxHp:600, isWall:true}
 };
 
 const N = {
   archer:'弓箭塔', ice:'冰冻塔', cannon:'炮塔', poison:'毒塔', thunder:'雷电塔', wall:'墙壁'
 };
 
-// ========== V6.0 关卡系统 - 60关渐进式设计 ==========
-// 章节结构：入门篇(1-5) → 基础篇(6-10) → 进阶篇(11-15) → 挑战篇(16-20) → 精英篇(21-25)
-// 难度曲线：平滑递增，每章有独特机制主题
-
-const CHAPTERS = {
-  tutorial: {name:'入门篇', color:'#4CAF50', theme:'基础操作'},
-  basics: {name:'基础篇', color:'#2196F3', theme:'塔种组合'},
-  advanced: {name:'进阶篇', color:'#9C27B0', theme:'属性克制'},
-  challenge: {name:'挑战篇', color:'#FF5722', theme:'AI适应'},
-  elite: {name:'精英篇', color:'#FFD700', theme:'极限策略'}
-};
-
-// V6.0: 平滑难度曲线
-function getLevelParams(levelIdx) {
-  const chapter = Math.floor(levelIdx / 5);
-  const chapterIdx = levelIdx % 5;
-  
-  // 波次：3 + level*0.3，平滑增长
-  const waves = Math.min(15, 3 + Math.floor(levelIdx * 0.3));
-  
-  // 初始金币：随难度递减，但有保底
-  const startGold = Math.max(300, 550 - levelIdx * 10);
-  
-  // 敌人血量倍率：指数增长但有上限
-  const hpMult = 1 + Math.pow(levelIdx * 0.08, 1.2);
-  
-  // 金币奖励：稳定增长
-  const goldBonus = 30 + levelIdx * 8;
-  
-  return {chapter, waves, startGold, hpMult, goldBonus};
-}
+// ========== V2.0 关卡系统 - 12关渐进式设计 ==========
+// 章节结构：入门篇 → 成长篇 → 挑战篇 → 精英篇
+// 难度曲线：前3关教学，后9关逐步挑战
 
 const LEVELS = [
-  // 第一章：入门篇（关卡1-5）- 教学引导
-  {id:'1-1', name:'初阵', chapter:'tutorial', waves:3, startGold:550, goldBonus:35,
-   unlock:['wall','archer'], enemies:['normal'], starThresholds:[0.9, 0.7, 0.5],
-   desc:'放置墙壁和弓箭塔'},
-  {id:'1-2', name:'疾风', chapter:'tutorial', waves:3, startGold:520, goldBonus:40,
-   unlock:['wall','archer','ice'], enemies:['normal','fast'], starThresholds:[0.85, 0.65, 0.45],
-   desc:'冰塔减速快速敌人'},
-  {id:'1-3', name:'铁壁', chapter:'tutorial', waves:4, startGold:500, goldBonus:45,
-   unlock:['wall','archer','ice','cannon'], enemies:['normal','fast'], starThresholds:[0.8, 0.6, 0.4],
-   desc:'炮塔AOE清理'},
-  {id:'1-4', name:'毒雾', chapter:'tutorial', waves:4, startGold:480, goldBonus:50,
-   unlock:['wall','archer','ice','cannon','poison'], enemies:['normal','fast','tank'], starThresholds:[0.75, 0.55, 0.35],
-   desc:'毒塔克制坦克'},
-  {id:'1-5', name:'雷霆', chapter:'tutorial', waves:5, startGold:450, goldBonus:60,
-   unlock:['all'], enemies:['normal','fast','tank'], boss:true, starThresholds:[0.7, 0.5, 0.3],
-   desc:'雷电塔连锁攻击 + 第一次BOSS'},
-  
-  // 第二章：基础篇（关卡6-10）- 塔种组合
-  {id:'2-1', name:'暗流', chapter:'basics', waves:5, startGold:430, goldBonus:70,
-   unlock:['all'], enemies:['normal','fast','scout'], starThresholds:[0.7, 0.5, 0.3],
-   desc:'侦察兵出现'},
-  {id:'2-2', name:'破壁', chapter:'basics', waves:6, startGold:410, goldBonus:80,
-   unlock:['all'], enemies:['normal','fast','destroyer'], starThresholds:[0.65, 0.45, 0.25],
-   desc:'破坏者攻击墙壁'},
-  {id:'2-3', name:'幻形', chapter:'basics', waves:6, startGold:390, goldBonus:90,
-   unlock:['all'], enemies:['normal','fast','shifter'], starThresholds:[0.6, 0.4, 0.2],
-   desc:'变形怪切换属性'},
-  {id:'2-4', name:'混战', chapter:'basics', waves:7, startGold:370, goldBonus:100,
-   unlock:['all'], enemies:['normal','fast','tank','scout'], starThresholds:[0.55, 0.35, 0.15],
-   desc:'敌人混合波次'},
-  {id:'2-5', name:'狂潮', chapter:'basics', waves:8, startGold:350, goldBonus:120,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.5, 0.3, 0.1],
-   desc:'全敌人BOSS战'},
-  
-  // 第三章：进阶篇（关卡11-15）- 属性克制
-  {id:'3-1', name:'冰火', chapter:'advanced', waves:6, startGold:340, goldBonus:130,
-   unlock:['all'], enemies:['fast','tank','destroyer'], starThresholds:[0.55, 0.35, 0.15],
-   desc:'属性克制：冰克火'},
-  {id:'3-2', name:'毒雷', chapter:'advanced', waves:7, startGold:330, goldBonus:140,
-   unlock:['all'], enemies:['tank','scout','shifter'], starThresholds:[0.5, 0.3, 0.1],
-   desc:'属性克制：雷克毒'},
-  {id:'3-3', name:'连锁', chapter:'advanced', waves:7, startGold:320, goldBonus:150,
-   unlock:['all'], enemies:['normal','fast','scout','destroyer'], starThresholds:[0.45, 0.25, 0.08],
-   desc:'利用属性弱点'},
-  {id:'3-4', name:'逆克', chapter:'advanced', waves:8, startGold:310, goldBonus:160,
-   unlock:['all'], enemies:['all'], starThresholds:[0.4, 0.2, 0.05],
-   desc:'敌人属性强化'},
-  {id:'3-5', name:'元素', chapter:'advanced', waves:9, startGold:300, goldBonus:180,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.35, 0.15, 0.03],
-   desc:'元素BOSS战'},
-  
-  // 第四章：挑战篇（关卡16-20）- AI适应
-  {id:'4-1', name:'记忆', chapter:'challenge', waves:8, startGold:290, goldBonus:190,
-   unlock:['all'], enemies:['normal','fast','scout','destroyer'], starThresholds:[0.4, 0.2, 0.05],
-   desc:'AI记忆你的布局'},
-  {id:'4-2', name:'适应', chapter:'challenge', waves:9, startGold:285, goldBonus:200,
-   unlock:['all'], enemies:['all'], starThresholds:[0.35, 0.15, 0.03],
-   desc:'敌人动态适应'},
-  {id:'4-3', name:'进化', chapter:'challenge', waves:10, startGold:280, goldBonus:210,
-   unlock:['all'], enemies:['all'], starThresholds:[0.3, 0.1, 0.02],
-   desc:'敌人属性进化'},
-  {id:'4-4', name:'绝境', chapter:'challenge', waves:11, startGold:275, goldBonus:220,
-   unlock:['all'], enemies:['all'], starThresholds:[0.25, 0.08, 0.01],
-   desc:'极限挑战'},
-  {id:'4-5', name:'终焉', chapter:'challenge', waves:12, startGold:270, goldBonus:250,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.2, 0.05, 0],
-   desc:'终极BOSS战'},
-  
-  // 第五章：精英篇（关卡21-25）- 极限策略
-  {id:'5-1', name:'噩梦', chapter:'elite', waves:10, startGold:260, goldBonus:260,
-   unlock:['all'], enemies:['all'], starThresholds:[0.3, 0.1, 0.02],
-   desc:'噩梦难度开始'},
-  {id:'5-2', name:'地狱', chapter:'elite', waves:11, startGold:255, goldBonus:270,
-   unlock:['all'], enemies:['all'], starThresholds:[0.25, 0.08, 0.01],
-   desc:'地狱级挑战'},
-  {id:'5-3', name:'深渊', chapter:'elite', waves:12, startGold:250, goldBonus:280,
-   unlock:['all'], enemies:['all'], starThresholds:[0.2, 0.05, 0],
-   desc:'深渊级敌人'},
-  {id:'5-4', name:'炼狱', chapter:'elite', waves:13, startGold:245, goldBonus:300,
-   unlock:['all'], enemies:['all'], starThresholds:[0.15, 0.03, 0],
-   desc:'炼狱级考验'},
-  {id:'5-5', name:'封神', chapter:'elite', waves:15, startGold:240, goldBonus:350,
-   unlock:['all'], enemies:['all'], boss:true, starThresholds:[0.1, 0.02, 0],
-   desc:'封神之战 - 全章节终极BOSS'}
+  {id:'1-1', name:'初阵', waves:3, startGold:550, goldBonus:40,
+   unlock:['wall','archer'], enemies:['normal'], chapter:'教学篇',
+   desc:'点击网格放置墙壁，然后选择弓箭塔'},
+  {id:'1-2', name:'疾风', waves:4, startGold:500, goldBonus:50,
+   unlock:['wall','archer','ice'], enemies:['normal','fast'], chapter:'教学篇',
+   desc:'快速敌人需要冰塔减速'},
+  {id:'2-1', name:'铁壁', waves:5, startGold:450, goldBonus:60,
+   unlock:['wall','archer','ice','cannon'], enemies:['normal','fast','tank'], chapter:'成长篇',
+   desc:'坦克敌人需要炮塔AOE集火'},
+  {id:'2-2', name:'剧毒', waves:5, startGold:420, goldBonus:70,
+   unlock:['wall','archer','ice','cannon','poison'], enemies:['normal','fast','tank'], chapter:'成长篇',
+   desc:'毒塔持续伤害克制高血量'},
+  {id:'2-3', name:'雷霆', waves:6, startGold:400, goldBonus:80,
+   unlock:['all'], enemies:['normal','fast','scout'], chapter:'成长篇',
+   desc:'侦察兵会记住你的布局!'},
+  {id:'3-1', name:'破军', waves:7, startGold:380, goldBonus:100,
+   unlock:['all'], enemies:['normal','fast','tank','destroyer'], chapter:'挑战篇',
+   desc:'破坏者会攻击墙壁!'},
+  {id:'3-2', name:'幻影', waves:8, startGold:350, goldBonus:120,
+   unlock:['all'], enemies:['normal','fast','scout','shifter'], chapter:'挑战篇',
+   desc:'变形怪随机切换抗性'},
+  {id:'3-3', name:'终焉', waves:10, startGold:320, goldBonus:150, boss:true,
+   unlock:['all'], enemies:['all'], chapter:'挑战篇',
+   desc:'最终挑战 - 全敌人BOSS战!'}
 ];
 
 // ========== 游戏状态 ==========
@@ -541,28 +64,17 @@ let aiMemory = {
   destroyerAttacks: 0   // 破坏者攻击次数
 };
 
-// ========== V6.0 敌人系统 ==========
-// 设计原则：属性弱点 + 平滑成长 + 策略应对
-// 每种敌人有元素属性，与塔形成克制关系
+// ========== V2.0 敌人系统 - 精心平衡的数值 ==========
+// 设计原则：每种敌人有独特定位，血量/速度/金币成比例
+// V2.1: 速度降低到30%，游戏更易上手
 
 const ENEMY_TYPES = {
-  // 普通敌人：基础货币单位，无属性弱点
-  normal: {hp:55, color:'#8BC34A', size:0.40, gold:8, speed:0.65, element:'normal'},
-  
-  // 快速敌人：低血高移速，被冰塔克制
-  fast: {hp:35, color:'#42A5F5', size:0.32, gold:10, speed:1.05, element:'ice'},
-  
-  // 坦克敌人：高血低速，被毒塔叠加克制
-  tank: {hp:200, color:'#78909C', size:0.52, gold:22, speed:0.32, element:'poison'},
-  
-  // 破坏者：攻击墙壁，高血中速，被炮塔克制
-  destroyer: {hp:250, color:'#D32F2F', size:0.48, gold:28, speed:0.28, element:'fire', isDestroyer:true, atkDmg:80, atkSpeed:120},
-  
-  // 侦察兵：记忆布局，中等属性
-  scout: {hp:65, color:'#FFD700', size:0.36, gold:14, speed:0.70, element:'thunder', isScout:true},
-  
-  // 变形怪：切换属性，高机动
-  shifter: {hp:130, color:'#9C27B0', size:0.42, gold:20, speed:0.45, element:'normal', isShifter:true}
+  normal: {hp:50, color:'#8BC34A', size:0.40, gold:6, speed:0.45},
+  fast: {hp:30, color:'#42A5F5', size:0.32, gold:8, speed:0.75},
+  tank: {hp:180, color:'#78909C', size:0.52, gold:20, speed:0.22},
+  destroyer: {hp:220, color:'#D32F2F', size:0.48, gold:25, speed:0.18, isDestroyer:true, atkDmg:100},
+  scout: {hp:60, color:'#FFD700', size:0.36, gold:12, speed:0.55, isScout:true},
+  shifter: {hp:120, color:'#9C27B0', size:0.42, gold:18, speed:0.30, isShifter:true}
 };
 
 // ========== 存档系统 ==========
@@ -1098,46 +610,47 @@ function toggleBattle() {
 function spawnWave() {
   wave++;
   const isBossWave = wave === currentLevel.waves && currentLevel.boss;
-  const chapterInfo = CHAPTERS[currentLevel.chapter] || CHAPTERS.tutorial;
-  
-  showWave(
-    isBossWave ? '👹 '+chapterInfo.name+'BOSS!' : '🌊 第'+wave+'波 ['+chapterInfo.name+']', 
-    isBossWave ? '#F44336' : chapterInfo.color
-  );
+  showWave(isBossWave ? '👹 BOSS来袭!' : '🌊 第'+wave+'波', isBossWave ? '#F44336' : '#4CAF50');
   
   if(isBossWave) {
     // BOSS战：BOSS + 随从小怪
-    // V6.0: BOSS血量使用平滑增长曲线
-    const baseBossHp = 2500;
-    const levelBonus = curLevelIdx * 150; // 每关+150
-    const chapterBonus = Math.floor(curLevelIdx / 5) * 500; // 每章额外+500
-    const bossHp = baseBossHp + levelBonus + chapterBonus;
+    const bossHp = 2500 + curLevelIdx * 300;
+    enemies.push(makeEnemy(bossHp, '#AB47BC', 1.0, 200, {isBoss:true}));
     
-    enemies.push(makeEnemy(bossHp, '#AB47BC', 1.2, 300, {isBoss:true}));
-    
-    // BOSS召唤随从（数量随关卡增加）
-    const summonCount = 3 + Math.floor(curLevelIdx / 3);
-    for(let i = 0; i < summonCount; i++) {
+    // BOSS召唤随从
+    for(let i = 0; i < 4; i++) {
       setTimeout(() => {
         if(fighting) {
-          const type = i % 2 === 0 ? 'fast' : 'normal';
-          enemies.push(createEnemyByType(type, wave));
+          enemies.push(createEnemyByType('fast', wave));
         }
-      }, 500 + i * 400);
+      }, 500 + i * 300);
     }
   } else {
     // 普通波次：根据关卡配置生成敌人
-    // V6.0: 平滑敌人数量增长
-    const baseCount = 2 + wave;
-    const cnt = Math.min(baseCount, 18);
+    const baseCount = 3 + wave * 2;
+    const cnt = Math.min(baseCount, 20);
     const availEnemies = currentLevel.enemies || ['normal'];
     const useAll = availEnemies.includes('all');
     
-    // 敌人类型权重随波次变化
-    const typeWeights = getEnemyWeights(wave, availEnemies, useAll);
-    
     for(let i = 0; i < cnt; i++) {
-      const etype = weightedRandom(typeWeights);
+      let etype = 'normal';
+      const r = Math.random();
+      
+      // 根据关卡配置和波次决定敌人类型
+      if(useAll || availEnemies.length > 1) {
+        // 基础敌人权重
+        if(r < 0.10 && wave >= 6 && (useAll || availEnemies.includes('scout'))) {
+          etype = 'scout';
+        } else if(r < 0.18 && wave >= 7 && (useAll || availEnemies.includes('destroyer'))) {
+          etype = 'destroyer';
+        } else if(r < 0.26 && wave >= 8 && (useAll || availEnemies.includes('shifter'))) {
+          etype = 'shifter';
+        } else if(r < 0.42 && wave >= 2 && (useAll || availEnemies.includes('fast'))) {
+          etype = 'fast';
+        } else if(r < 0.55 && wave >= 4 && (useAll || availEnemies.includes('tank'))) {
+          etype = 'tank';
+        }
+      }
       
       // 分批出怪，增加节奏感
       setTimeout(() => {
@@ -1145,7 +658,7 @@ function spawnWave() {
           const e = createEnemyByType(etype, wave);
           enemies.push(e);
         }
-      }, i * (300 - Math.min(wave * 10, 150))); // 波次越高，出怪越快
+      }, i * 250);
     }
   }
   
@@ -1153,50 +666,18 @@ function spawnWave() {
   updateAIInfo();
 }
 
-// V6.0: 根据波次和关卡配置计算敌人类型权重
-function getEnemyWeights(wave, availEnemies, useAll) {
-  const weights = {};
-  
-  // 基础权重
-  weights.normal = useAll || availEnemies.includes('normal') ? 40 : 0;
-  weights.fast = useAll || availEnemies.includes('fast') ? 25 + Math.min(wave * 2, 15) : 0;
-  weights.tank = useAll || availEnemies.includes('tank') ? 15 + Math.min(wave * 1.5, 10) : 0;
-  weights.scout = (useAll || availEnemies.includes('scout')) && wave >= 2 ? 8 + wave : 0;
-  weights.destroyer = (useAll || availEnemies.includes('destroyer')) && wave >= 3 ? 7 + wave * 0.8 : 0;
-  weights.shifter = (useAll || availEnemies.includes('shifter')) && wave >= 4 ? 5 + wave * 0.6 : 0;
-  
-  return weights;
-}
-
-// V6.0: 加权随机选择
-function weightedRandom(weights) {
-  const total = Object.values(weights).reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  
-  for(const [type, weight] of Object.entries(weights)) {
-    r -= weight;
-    if(r <= 0) return type;
-  }
-  return 'normal';
-}
-
 function createEnemyByType(type, wave) {
   const base = ENEMY_TYPES[type];
-  // V6.0: 平滑血量成长曲线（使用指数函数避免跳跃）
-  const hpMult = 1 + Math.pow(wave * 0.1, 1.15);
-  // 金币成长更平滑
-  const goldMult = 1 + wave * 0.08;
+  const hpMult = 1 + wave * 0.15;
   
   const opts = {
     isScout: base.isScout,
     isDestroyer: base.isDestroyer,
     isShifter: base.isShifter,
-    atkDmg: base.atkDmg || 0,
-    atkSpeed: base.atkSpeed || 180,
-    element: base.element || 'normal'
+    atkDmg: base.atkDmg || 0
   };
   
-  return makeEnemy(base.hp * hpMult, base.color, base.size, Math.floor(base.gold * goldMult), opts, base.speed);
+  return makeEnemy(base.hp * hpMult, base.color, base.size, base.gold, opts, base.speed);
 }
 
 function makeEnemy(hp, co, sz, g, opts={}, spd=0.735) {
@@ -1297,16 +778,14 @@ function loop() {
       // 如果下一格有障碍物（墙/塔），攻击它
       if(grid[ny] && grid[ny][nx] !== 0) {
         e.attacking = true;
-        // V6.0: 统一使用时间戳计算攻击间隔
-        if(!e.lastAtkTime) e.lastAtkTime = 0;
+        e.attackTimer = (e.attackTimer || 0) + 1;
         
-        // 攻击速度：破坏者1.5秒，普通敌人3秒（统一毫秒）
-        const attackSpeed = e.isDestroyer ? 1500 : 3000;
+        // 攻击速度：破坏者1.5秒(90帧)，普通敌人3秒(180帧)
+        const attackSpeed = e.isDestroyer ? 90 : 180;
         const damage = e.isDestroyer ? (e.atkDmg || 80) : 30;
-        const now = Date.now();
         
-        if(now - e.lastAtkTime >= attackSpeed) {
-          e.lastAtkTime = now;
+        if(e.attackTimer >= attackSpeed) {
+          e.attackTimer = 0;
           
           // 找到这个位置的塔
           let targetTower = null;
@@ -1402,12 +881,11 @@ function loop() {
       continue;
     }
     
-    // 死亡 - V6.0击杀特效
+    // 死亡
     if(e.hp <= 0) {
       gold += e.g;
       kills++;
-      // V6.0: BOSS有特殊击杀特效
-      spawnKillEffect(e.x, e.y, e.boss);
+      spawnP(e.x, e.y, e.co, 18);
       dmgTexts.push({x:e.x, y:e.y-20, txt:'+'+e.g, co:'#FFD700', life:40});
       enemies.splice(i, 1);
       updateUI();
@@ -1461,7 +939,7 @@ function loop() {
       t.hp = Math.min(t.maxHp, t.hp + 0.5);
     }
     
-    // 普通攻击逻辑 - V6.0属性克制系统
+    // 普通攻击逻辑
     if(t.cd > 0) { t.cd--; continue; }
     if(t.d === 0) continue;
     
@@ -1471,28 +949,28 @@ function loop() {
     
     let tg = null, md = Infinity;
     for(const e of enemies) {
+      // 变形怪属性克制
+      let dmgMult = 1;
+      if(e.isShifter && e.currentElement !== 'normal') {
+        const towerElement = {
+          archer: 'normal', cannon: 'fire', ice: 'ice', poison: 'poison', thunder: 'normal', blocker: 'normal'
+        }[t.tp] || 'normal';
+        if(towerElement !== 'normal' && towerElement !== e.currentElement) {
+          dmgMult = 0.5; // 属性不匹配伤害减半
+        }
+      }
+      
       const d = Math.hypot(e.x-tx, e.y-ty);
       if(d < rn && d < md) {
         md = d;
         tg = e;
+        t.dmgMult = dmgMult;
       }
     }
     
     if(tg) {
-      t.cd = Math.floor(t.s / 1000 * FPS); // 毫秒转帧数
+      t.cd = t.s/60;
       const a = Math.atan2(tg.y-ty, tg.x-tx);
-      
-      // V6.0: 计算元素克制伤害倍率
-      let dmgMult = 1.0;
-      const towerElement = T[t.tp].element || 'normal';
-      const enemyElement = tg.isShifter ? tg.currentElement : tg.element;
-      const weakness = ELEMENT_BONUS[enemyElement]?.weakTo || [];
-      if(weakness.includes(towerElement)) {
-        dmgMult = 1.5; // 被克制：+50%伤害
-      } else if(ELEMENT_BONUS[enemyElement]?.bonus && towerElement === enemyElement) {
-        dmgMult = 0.7; // 同属性：-30%伤害
-      }
-      
       bullets.push({
         x: tx, y: ty,
         vx: Math.cos(a)*12,
@@ -1500,13 +978,12 @@ function loop() {
         d: t.d,
         co: t.co,
         src: t,
-        dmgMult: dmgMult,
-        element: towerElement
+        dmgMult: t.dmgMult || 1
       });
     }
   }
   
-  // === 子弹更新 - V6.0属性克制系统 ===
+  // === 子弹更新 ===
   for(let i=bullets.length-1; i>=0; i--) {
     const b = bullets[i];
     b.x += b.vx;
@@ -1522,60 +999,26 @@ function loop() {
       if(Math.hypot(e.x-b.x, e.y-b.y) < e.sz*CS*0.5+5) {
         const finalDmg = Math.floor(b.d * (b.dmgMult || 1));
         e.hp -= finalDmg;
-        // 伤害数字颜色根据克制关系变化
-        const txtColor = (b.dmgMult || 1) > 1 ? '#FFD700' : '#F44336';
-        const bonusTxt = (b.dmgMult || 1) > 1 ? '💥' : '';
-        dmgTexts.push({x:e.x, y:e.y-30, txt:bonusTxt+'-'+finalDmg, co:txtColor, life:30});
+        dmgTexts.push({x:e.x, y:e.y-30, txt:'-'+finalDmg, co:'#F44336', life:30});
         
-        // 冰冻减速效果
-        if(b.src.tp === 'ice') {
-          e.sl = T.ice.slowDur;
-        }
-        
-        // 毒塔DOT叠加效果
-        if(b.src.tp === 'poison') {
-          e.poisonStacks = (e.poisonStacks || 0) + 1;
-          e.poisonStacks = Math.min(e.poisonStacks, T.poison.dotStacks);
-          e.dt = T.poison.dotDur;
-          e.dv = T.poison.dot * e.poisonStacks; // 叠加层数增加伤害
-        }
-        
-        // AOE效果（炮塔）
+        // 特殊效果
+        if(b.src.w) e.sl = 100;
+        if(b.src.o) { e.dt = 150; e.dv = b.src.o; }
         if(b.src.a) {
-          const aoeTargets = enemies.filter(o => o!==e && Math.hypot(o.x-b.x, o.y-b.y) < b.src.a*CS);
-          for(const o of aoeTargets) {
-            o.hp -= b.d * 0.5 * (b.dmgMult || 1);
-            spawnP(o.x, o.y, b.co, 4);
+          for(const o of enemies) {
+            if(o!==e && Math.hypot(o.x-b.x, o.y-b.y) < b.src.a*CS) {
+              o.hp -= b.d * 0.4;
+            }
           }
         }
-        
-        // 雷电连锁效果
         if(b.src.h) {
-          let chainCount = b.src.h;
-          let chainMult = 0.8;
-          const chained = [e];
-          let curX = b.x, curY = b.y;
-          
-          while(chainCount > 0) {
-            let nearest = null, nearestDist = Infinity;
-            for(const o of enemies) {
-              if(chained.includes(o)) continue;
-              const dist = Math.hypot(o.x-curX, o.y-curY);
-              if(dist < CS * 2.5 && dist < nearestDist) {
-                nearest = o;
-                nearestDist = dist;
-              }
+          let cc = b.src.h;
+          for(const o of enemies) {
+            if(o!==e && Math.hypot(o.x-e.x, o.y-e.y) < CS*3) {
+              o.hp -= b.d * 0.5;
+              cc--;
+              if(cc <= 0) break;
             }
-            if(nearest) {
-              nearest.hp -= b.d * chainMult * (b.dmgMult || 1);
-              dmgTexts.push({x:nearest.x, y:nearest.y-30, txt:'⚡-'+Math.floor(b.d*chainMult*(b.dmgMult||1)), co:'#FFD700', life:25});
-              spawnP(nearest.x, nearest.y, b.co, 8);
-              chained.push(nearest);
-              curX = nearest.x;
-              curY = nearest.y;
-              chainMult *= 0.6;
-            }
-            chainCount--;
           }
         }
         
@@ -1586,20 +1029,13 @@ function loop() {
     }
   }
   
-  // === 粒子/文字更新 - V6.0 3D粒子系统 ===
+  // === 粒子/文字更新 ===
   for(let i=parts.length-1; i>=0; i--) {
-    const p = parts[i];
-    p.x += p.vx || 0;
-    p.y += p.vy || 0;
-    // Z轴模拟（用y偏移模拟深度）
-    if(p.vz !== undefined) {
-      p.vz -= p.gravity || 0.15;
-      p.y += p.vz;
-    } else {
-      p.y += p.gravity || 0.15;
-    }
-    p.l--;
-    if(p.l <= 0) parts.splice(i, 1);
+    parts[i].x += parts[i].vx;
+    parts[i].y += parts[i].vy;
+    parts[i].vy += 0.15;
+    parts[i].l--;
+    if(parts[i].l <= 0) parts.splice(i, 1);
   }
   
   for(let i=dmgTexts.length-1; i>=0; i--) {
@@ -1610,53 +1046,6 @@ function loop() {
   
   render();
   requestAnimationFrame(loop);
-}
-
-// V6.0: 增强粒子效果
-function spawnP(x, y, co, n, opts={}) {
-  const {type='normal', spread=1, gravity=0.15} = opts;
-  
-  for(let i=0; i<n; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const b = (Math.random() - 0.5) * Math.PI * 0.8; // 3D散射
-    const s = (Math.random() * 4 + 2) * spread;
-    
-    parts.push({
-      x, y,
-      vx: Math.cos(a) * Math.cos(b) * s,
-      vy: Math.sin(a) * Math.cos(b) * s,
-      vz: Math.sin(b) * s * 0.3,
-      co,
-      l: 25 + Math.random() * 20,
-      sz: 2 + Math.random() * 5,
-      gravity: gravity
-    });
-  }
-}
-
-// V6.0: 元素特效
-function spawnElementP(x, y, element, count=15) {
-  const colors = {
-    fire: ['#FF5722', '#FF9800', '#FFEB3B'],
-    ice: ['#03A9F4', '#4FC3F7', '#B3E5FC'],
-    poison: ['#8BC34A', '#CDDC39', '#F0F4C3'],
-    thunder: ['#FFC107', '#FFEB3B', '#FFF8E1']
-  };
-  const pcs = colors[element] || ['#fff'];
-  
-  for(let i=0; i<count; i++) {
-    const co = pcs[Math.floor(Math.random() * pcs.length)];
-    spawnP(x, y, co, 1, {type:element, spread:0.8});
-  }
-}
-
-// V6.0: 击杀特效
-function spawnKillEffect(x, y, isBoss=false) {
-  spawnP(x, y, '#FFD700', isBoss ? 40 : 20, {spread: 1.5});
-  if(isBoss) {
-    spawnP(x, y, '#AB47BC', 30, {spread: 2});
-    spawnP(x, y, '#FFD700', 20, {spread: 2.5});
-  }
 }
 
 // ========== V14 腾讯品质渲染 ==========
@@ -2051,11 +1440,10 @@ function drawTowerIcon(ctx, type, x, y, r) {
     ctx.fillStyle = hr>0.5 ? '#00E676' : hr>0.25 ? '#FF9100' : '#FF1744';
     ctx.fillRect(e.x-sz, e.y-sz-8, sz*2*hr, 5);
     
-    // 攻击进度条（正在破墙时显示）- V6.0使用时间戳
-    if(e.attacking && e.lastAtkTime) {
-      const attackSpeed = e.isDestroyer ? 1500 : 3000;
-      const elapsed = Date.now() - e.lastAtkTime;
-      const atkPct = Math.min(1, elapsed / attackSpeed);
+    // 攻击进度条（正在破墙时显示）
+    if(e.attacking && e.attackTimer > 0) {
+      const atkMax = e.isDestroyer ? 90 : 180;
+      const atkPct = e.attackTimer / atkMax;
       ctx.fillStyle = '#1a1a1a';
       ctx.fillRect(e.x-sz, e.y+sz+4, sz*2, 4);
       ctx.fillStyle = '#FF5722';
@@ -2355,6 +1743,3 @@ document.addEventListener('click', function(e) {
   }
 });
 
-</script>
-</body>
-</html>
