@@ -2240,13 +2240,15 @@ function render() {
     }
   }
   
-  // V15.0: 优化渲染 - 正确使用离屏缓存
-  if(bgDirty && bgCtx) {
-    // 只在需要时重绘背景到离屏canvas
+// V15.0: 优化渲染 - 正确使用离屏缓存
+  // V16.3: 修复bgCanvas尺寸未设置的bug
+  if(bgDirty && bgCtx && bgCanvas && W > 0 && H > 0) {
+    bgCanvas.width = W;
+    bgCanvas.height = H;
     renderBg(bgCtx);
-    bgDirty = false; // 标记为已更新
+    bgDirty = false;
   }
-  if(bgCanvas) {
+  if(bgCanvas && bgCanvas.width > 0 && bgCanvas.height > 0) {
     ctx.drawImage(bgCanvas, 0, 0);
   } else {
     renderBg(ctx);
