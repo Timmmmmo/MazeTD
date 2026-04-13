@@ -2798,18 +2798,16 @@ function drawTowerIcon(ctx, type, x, y, r) {
   ctx.restore();
 }
   
-  // ========== V9.3 敌人渲染 - Q版可爱风格 ==========
-  // 增大尺寸 + 阴影 + 表情符号
+  // V17.0: 敌人渲染 - 独立函数（在render()中调用）
+function renderEnemies(ctx) {
   for(const e of enemies) {
-    const sz = e.sz * CS * 0.7; // 增大到0.7倍（原来是0.4）
+    const sz = e.sz * CS * 0.7;
     
-    // 阴影效果
     ctx.shadowColor = 'rgba(0,0,0,0.3)';
     ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
     
-    // 敌人身体 - 发光效果
     ctx.shadowColor = e.co;
     ctx.shadowBlur = 15;
     ctx.shadowOffsetX = 0;
@@ -2817,10 +2815,8 @@ function drawTowerIcon(ctx, type, x, y, r) {
     ctx.beginPath();
     ctx.arc(e.x, e.y, sz, 0, Math.PI*2);
     
-    // 渐变填充
     const enemyGrad = ctx.createRadialGradient(e.x-sz*0.3, e.y-sz*0.3, 0, e.x, e.y, sz);
     if(e.sl > 0) {
-      // 冰冻效果 - 冰蓝色
       enemyGrad.addColorStop(0, '#E0F7FA');
       enemyGrad.addColorStop(0.5, '#4DD0E1');
       enemyGrad.addColorStop(1, '#006064');
@@ -2835,16 +2831,13 @@ function drawTowerIcon(ctx, type, x, y, r) {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    // 白色高光
     ctx.beginPath();
     ctx.arc(e.x-sz*0.25, e.y-sz*0.25, sz*0.2, 0, Math.PI*2);
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.fill();
     
-    // 表情图标（Canvas绘制Q版表情）
     drawCuteFace(ctx, e, e.x, e.y, sz);
     
-    // 侦察兵/破坏者光环
     if(e.isScout || e.isDestroyer) {
       ctx.strokeStyle = e.isScout ? 'rgba(255,215,0,0.5)' : 'rgba(255,23,68,0.5)';
       ctx.lineWidth = 3;
@@ -2855,11 +2848,9 @@ function drawTowerIcon(ctx, type, x, y, r) {
       ctx.setLineDash([]);
     }
     
-    // 血条背景
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(e.x-sz*0.9, e.y-sz-10, sz*1.8, 6);
     
-    // 血条
     const hr = Math.max(0, e.hp/e.mh);
     const hpGrad = ctx.createLinearGradient(e.x-sz*0.9, 0, e.x+sz*0.9, 0);
     if(hr > 0.5) {
@@ -2875,7 +2866,6 @@ function drawTowerIcon(ctx, type, x, y, r) {
     ctx.fillStyle = hpGrad;
     ctx.fillRect(e.x-sz*0.9, e.y-sz-10, sz*1.8*hr, 6);
     
-    // 攻击进度条
     if(e.attacking && e.lastAtkTime) {
       const attackSpeed = e.isDestroyer ? 1500 : 3000;
       const elapsed = Date.now() - e.lastAtkTime;
@@ -2886,6 +2876,7 @@ function drawTowerIcon(ctx, type, x, y, r) {
       ctx.fillRect(e.x-sz*0.9, e.y+sz+5, sz*1.8*atkPct, 5);
     }
   }
+}
 
 // 敌人图标绘制函数
 // ========== V9.3 颜色辅助函数 ==========
@@ -3093,6 +3084,9 @@ function drawEnemyIcon(ctx, e, x, y, r) {
     ctx.shadowBlur = 0;
   }
   ctx.globalAlpha = 1;
+  
+  // V17.0: 渲染敌人
+  renderEnemies(ctx);
   
   // V11.0: 恢复屏幕震动偏移
   if(shakeIntensity > 0) {
