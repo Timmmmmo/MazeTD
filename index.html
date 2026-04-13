@@ -645,6 +645,7 @@ let cv, ctx, W, H, ox, oy, grid, path, towers=[], enemies=[], bullets=[], parts=
 let gold, hp, wave, kills, cur='archer', tool='place', fighting=false, inited=false;
 let currentLevel=null, curLevelIdx=0;
 let tutorialStep=0, tutorialShown=false;
+let waveScheduled=false; // V16.2: 防止重复安排波次
 
 // ========== AI进化系统 ==========
 let aiMemory = {
@@ -1441,6 +1442,7 @@ function toggleBattle() {
       return;
     }
     fighting = true;
+    waveScheduled = false; // V16.2: 重置波次标志
     document.getElementById('btn-fight').textContent = '⏸ 暂停';
     document.getElementById('entry-mark').style.display = 'none';
     document.getElementById('exit-mark').style.display = 'none';
@@ -1448,6 +1450,7 @@ function toggleBattle() {
     loop();
   } else {
     fighting = false;
+    waveScheduled = false; // V16.2: 重置波次标志
     document.getElementById('btn-fight').textContent = '⚔️ 开战';
   }
 }
@@ -1820,12 +1823,15 @@ function loop() {
     }
   }
   
-  // 波次结束检测 - V16.1: 增加波次间隔让玩家准备
+  // 波次结束检测 - V16.2: 加标志防止重复安排
   if(enemies.length === 0) {
-    if(wave < currentLevel.waves) {
-      // 波次间隔从900ms增加到3000ms，给玩家足够准备时间
-      setTimeout(() => { if(fighting) spawnWave(); }, 3000);
-    } else {
+    if(wave < currentLevel.waves && !waveScheduled) {
+      waveScheduled = true;
+      setTimeout(() => { 
+        if(fighting) spawnWave(); 
+        waveScheduled = false;
+      }, 3000);
+    } else if(wave >= currentLevel.waves) {
       setTimeout(levelComplete, 600);
       return;
     }
