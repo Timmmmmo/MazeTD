@@ -3112,6 +3112,13 @@ function spawnP(x, y, c, n) {
 function updateDebug() {
   const d = document.getElementById('debug');
   if(!d) return;
+  
+  // V16.6: 如果ctx为null，尝试重新获取
+  if(!ctx) {
+    cv = document.getElementById('cv');
+    if(cv) ctx = cv.getContext('2d');
+  }
+  
   const valid = ctx && W > 0 && H > 0;
   d.style.display = 'block';
   d.style.background = valid ? '#1a1a1a' : 'red';
