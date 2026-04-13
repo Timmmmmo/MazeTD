@@ -598,24 +598,25 @@ let aiMemory = {
 // ========== V9.1 敌人速度调整 ==========
 // V9.1: 速度设为原来的1%，让玩家有时间反应
 
+// V14.0: 敌人速度调整 - 正常游戏节奏
 const ENEMY_TYPES = {
-  // 普通敌人
-  normal: {hp:55, color:'#8BC34A', size:0.40, gold:8, speed:0.0035, element:'normal'},
+  // 普通敌人 - 中速
+  normal: {hp:55, color:'#8BC34A', size:0.40, gold:8, speed:0.35, element:'normal'},
   
-  // 快速敌人
-  fast: {hp:35, color:'#42A5F5', size:0.32, gold:10, speed:0.0052, element:'ice'},
+  // 快速敌人 - 跑得快
+  fast: {hp:35, color:'#42A5F5', size:0.32, gold:10, speed:0.55, element:'ice'},
   
-  // 坦克敌人
-  tank: {hp:180, color:'#78909C', size:0.52, gold:22, speed:0.0018, element:'poison'},
+  // 坦克敌人 - 慢但硬
+  tank: {hp:180, color:'#78909C', size:0.52, gold:22, speed:0.18, element:'poison'},
   
-  // 破坏者
-  destroyer: {hp:220, color:'#D32F2F', size:0.48, gold:28, speed:0.0014, element:'fire', isDestroyer:true, atkDmg:80, atkSpeed:1500},
+  // 破坏者 - 较慢
+  destroyer: {hp:220, color:'#D32F2F', size:0.48, gold:28, speed:0.15, element:'fire', isDestroyer:true, atkDmg:80, atkSpeed:1500},
   
-  // 侦察兵
-  scout: {hp:65, color:'#FFD700', size:0.36, gold:14, speed:0.0035, element:'thunder', isScout:true},
+  // 侦察兵 - 中速
+  scout: {hp:65, color:'#FFD700', size:0.36, gold:14, speed:0.35, element:'thunder', isScout:true},
   
-  // 变形怪
-  shifter: {hp:120, color:'#9C27B0', size:0.42, gold:20, speed:0.0022, element:'normal', isShifter:true}
+  // 变形怪 - 中速
+  shifter: {hp:120, color:'#9C27B0', size:0.42, gold:20, speed:0.28, element:'normal', isShifter:true}
 };
 
 // ========== V7.0 平滑成长曲线 ==========
@@ -1640,11 +1641,22 @@ function loop() {
       }
     }
     
-    // 路径移动
+    // V14.0: 平滑移动 - 修复瞬移问题
     e.pi += sp/60;
-    const idx = Math.min(Math.floor(e.pi), usePath.length-1);
-    e.x = offsetX + (usePath[idx][0]+0.5)*CS;
-    e.y = offsetY + (usePath[idx][1]+0.5)*CS;
+    const pathLen = usePath.length;
+    const idx = Math.floor(e.pi) % pathLen;
+    const t = e.pi - Math.floor(e.pi); // 平滑插值 0-1
+    
+    // 当前点和下一个点的坐标
+    const currX = usePath[idx][0];
+    const currY = usePath[idx][1];
+    const nextIdx = (idx + 1) % pathLen;
+    const nextX = usePath[nextIdx][0];
+    const nextY = usePath[nextIdx][1];
+    
+    // 平滑插值计算位置
+    e.x = offsetX + (currX + t * (nextX - currX) + 0.5) * CS;
+    e.y = offsetY + (currY + t * (nextY - currY) + 0.5) * CS;
     
     // 到达终点
     if(e.pi >= usePath.length-1) {
