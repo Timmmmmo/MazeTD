@@ -2222,6 +2222,9 @@ function spawnKillEffect(x, y, isBoss=false) {
 
 // ========== V14 腾讯品质渲染 ==========
 function render() {
+  // V16.5: 先更新debug信息，再检查是否需要提前退出
+  updateDebug();
+  
   if(!ctx || W===0 || H===0) return;
   
   // V11.0: 屏幕震动效果
