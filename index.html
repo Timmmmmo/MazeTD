@@ -682,6 +682,7 @@ function initCanvas() {
   cv.onclick = click;
   cv.ontouchend = touch;
   window.onresize = resize;
+  initBgCanvas(); // V15.0: 初始化离屏背景缓存
   inited = true;
   return true;
 }
@@ -1229,6 +1230,7 @@ function place(x, y) {
   if(np && np.length > 0) {
     // 放置成功 - 塔允许建在路径上，敌人会找备用路径
     path = np;
+    bgDirty = true; // V15.0: 标记背景需要重绘
     spawnP(ox+(x+0.5)*CS, oy+(y+0.5)*CS, t.c, 12);
     // V12.0: 塔放置动画
     addAnimation('place', ox+(x+0.5)*CS, oy+(y+0.5)*CS);
@@ -1272,6 +1274,7 @@ function del(x, y) {
     showTip('✓ 塔删除');
   }
   
+  bgDirty = true; // V15.0: 标记背景需要重绘
   path = findPath();
   updateUI();
   updateInfo();
@@ -1595,6 +1598,7 @@ function loop() {
           if(grid[ny][nx] === 1) {
             // 墙壁：所有敌人可摧毁
             grid[ny][nx] = 0;
+            bgDirty = true; // V15.0: 标记背景需要重绘
             spawnP(offsetX+(nx+0.5)*CS, offsetY+(ny+0.5)*CS, '#78909C', 10);
             showTip('💥 敌人摧毁了墙壁!');
             aiMemory.destroyerAttacks++;
@@ -1612,6 +1616,7 @@ function loop() {
                 dmgTexts.push({x:offsetX+(nx+0.5)*CS, y:offsetY+(ny+0.5)*CS-30, txt:'-'+(e.atkDmg||80), co:'#FF5722', life:30});
                 if(targetTower.hp <= 0) {
                   grid[ny][nx] = 0;
+                  bgDirty = true; // V15.0: 标记背景需要重绘
                   towers.splice(towers.indexOf(targetTower), 1);
                   spawnP(offsetX+(nx+0.5)*CS, offsetY+(ny+0.5)*CS, targetTower.c, 15);
                   showTip('💥 破坏者摧毁了阻拦塔!');
@@ -1619,6 +1624,7 @@ function loop() {
               } else {
                 // 普通塔：破坏者直接摧毁
                 grid[ny][nx] = 0;
+                bgDirty = true; // V15.0: 标记背景需要重绘
                 towers.splice(towers.indexOf(targetTower), 1);
                 spawnP(offsetX+(nx+0.5)*CS, offsetY+(ny+0.5)*CS, targetTower.c, 15);
                 showTip('💥 破坏者摧毁了' + (N[targetTower.tp] || '塔') + '!');
@@ -1641,18 +1647,20 @@ function loop() {
       }
     }
     
-    // V14.0: 平滑移动 - 修复瞬移问题
+    // V15.0: 平滑移动 - 修复终点瞬移bug
     e.pi += sp/60;
     const pathLen = usePath.length;
-    const idx = Math.floor(e.pi) % pathLen;
-    const t = e.pi - Math.floor(e.pi); // 平滑插值 0-1
+    const idx = Math.min(Math.floor(e.pi), pathLen - 1);
+    const t = Math.min(e.pi - Math.floor(e.pi), 1); // 平滑插值 0-1
     
-    // 当前点和下一个点的坐标
+    // 当前点和下一个点的坐标（到达终点前停在终点）
     const currX = usePath[idx][0];
     const currY = usePath[idx][1];
-    const nextPathIdx = (idx + 1) % pathLen;
-    const nextX = usePath[nextPathIdx][0];
-    const nextY = usePath[nextPathIdx][1];
+    
+    // 下一个点：到达终点前使用终点坐标，避免瞬移
+    const moveNextIdx = (idx < pathLen - 1) ? idx + 1 : idx;
+    const nextX = usePath[moveNextIdx][0];
+    const nextY = usePath[moveNextIdx][1];
     
     // 平滑插值计算位置
     e.x = offsetX + (currX + t * (nextX - currX) + 0.5) * CS;
@@ -2095,30 +2103,32 @@ function render() {
   if(!ctx || W===0 || H===0) return;
   
   // V11.0: 屏幕震动效果
+  let shakeOffsetX = 0, shakeOffsetY = 0;
   if(shakeIntensity > 0 && shakeDuration > 0) {
     const elapsed = Date.now() - shakeStart;
     if(elapsed < shakeDuration) {
       const decay = 1 - (elapsed / shakeDuration);
-      const offsetX = (Math.random() - 0.5) * shakeIntensity * decay * 2;
-      const offsetY = (Math.random() - 0.5) * shakeIntensity * decay * 2;
+      shakeOffsetX = (Math.random() - 0.5) * shakeIntensity * decay * 2;
+      shakeOffsetY = (Math.random() - 0.5) * shakeIntensity * decay * 2;
       ctx.save();
-      ctx.translate(offsetX, offsetY);
+      ctx.translate(shakeOffsetX, shakeOffsetY);
     } else {
       shakeIntensity = 0;
       shakeDuration = 0;
     }
   }
   
-  // V4.1: 离屏背景缓存
-  if(bgCtx && bgDirty) {
+  // V15.0: 优化渲染 - 正确使用离屏缓存
+  if(bgDirty && bgCtx) {
+    // 只在需要时重绘背景到离屏canvas
     renderBg(bgCtx);
+    bgDirty = false; // 标记为已更新
   }
   if(bgCanvas) {
     ctx.drawImage(bgCanvas, 0, 0);
   } else {
     renderBg(ctx);
   }
-  bgDirty = true;
 
   if(!ctx || W===0 || H===0) return;
   
