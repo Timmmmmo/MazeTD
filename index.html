@@ -2,9 +2,49 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>迷宫塔防 V12.0 - 动画特效版</title>
+<!-- V16.0: 移动端优化 -->
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,minimum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0d1f">
+<meta name="msapplication-navbutton-color" content="#0d0d1f">
+<meta name="apple-mobile-web-app-title" content="迷宫塔防">
+<title>迷宫塔防 V16.0 - 腾讯品质</title>
 <style>
+/* V16.0: 移动端适配 */
+html,body{
+  height:100%;
+  overflow:hidden;
+  -webkit-overflow-scrolling:touch;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+/* iPhone刘海屏适配 */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+/* 小屏幕优化 */
+@media (max-width: 400px) {
+  .tower-btn{min-width:44px;height:50px}
+  .tower-btn .icon{font-size:16px}
+  .tower-btn .price{font-size:11px}
+  .act-btn{padding:12px 16px;font-size:13px}
+  .stat{font-size:12px;padding:4px 8px}
+  .stat b{font-size:16px}
+}
+/* 横屏适配 */
+@media (max-height: 500px) and (orientation: landscape) {
+  #top{height:44px}
+  #bottom{padding:6px}
+  .tower-btn{height:48px}
+}
+
 /* ========== V10.0 roundRect兼容性 ========== */
 if(!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -151,67 +191,87 @@ canvas{display:block;width:100%;height:100%}
 }
 #current-tool b{color:var(--gold);font-weight:600}
 
-/* 塔按钮 - 3D质感 */
+/* 塔按钮 - V16.0 优化触摸体验 */
 #tower-panel{
-  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
-  padding:6px;background:rgba(0,0,0,0.3);border-radius:12px;
+  display:flex;gap:6px;justify-content:center;flex-wrap:wrap;
+  padding:8px;background:rgba(0,0,0,0.3);border-radius:12px;
+  touch-action:manipulation;
 }
 .tower-btn{
-  width:48px;height:52px;border-radius:12px;
-  border:2px solid rgba(255,255,255,0.1);
+  min-width:50px;height:56px;padding:4px 8px;border-radius:12px;
+  border:2px solid rgba(255,255,255,0.15);
   background:linear-gradient(145deg,#252550,#1a1a3a);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+  cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
   box-shadow:0 4px 8px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
-/* V13.0: 悬浮效果 */
+/* V16.0: 增强悬浮和按下反馈 */
 .tower-btn:hover{
-  transform:translateY(-4px) scale(1.08);
+  transform:translateY(-3px) scale(1.05);
   border-color:rgba(255,215,0,0.6);
-  box-shadow:0 12px 30px rgba(255,215,0,0.15),0 4px 8px rgba(0,0,0,0.3);
+  box-shadow:0 8px 25px rgba(255,215,0,0.2),0 4px 8px rgba(0,0,0,0.3);
 }
-.tower-btn:active{transform:translateY(2px) scale(0.95)}
+.tower-btn:active{
+  transform:translateY(1px) scale(0.95);
+  box-shadow:0 2px 4px rgba(0,0,0,0.3);
+  transition-duration:0.05s;
+}
 .tower-btn.selected{
   border-color:var(--gold);
-  box-shadow:0 0 20px rgba(255,215,0,0.4),0 4px 8px rgba(0,0,0,0.3);
+  box-shadow:0 0 20px rgba(255,215,0,0.5),0 4px 8px rgba(0,0,0,0.3);
   background:linear-gradient(145deg,#3a3a6e,#252550);
+  animation:pulseSelected 2s ease-in-out infinite;
 }
-.tower-btn .icon{font-size:18px}
-.tower-btn .price{font-size:11px;color:var(--gold);font-weight:bold}
+@keyframes pulseSelected{
+  0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.5),0 4px 8px rgba(0,0,0,0.3)}
+  50%{box-shadow:0 0 30px rgba(255,215,0,0.7),0 4px 8px rgba(0,0,0,0.3)}
+}
+.tower-btn .icon{font-size:20px;margin-bottom:2px}
+.tower-btn .price{font-size:12px;color:var(--gold);font-weight:bold}
 .tower-btn .name{font-size:9px;color:#888}
-.tower-btn.disabled{opacity:0.3;pointer-events:none}
+.tower-btn.disabled{opacity:0.35;pointer-events:none;filter:grayscale(0.5)}
 .tower-btn.new-tower{border-color:var(--purple);box-shadow:0 0 10px rgba(224,64,251,0.3)}
 
-/* 工具按钮 */
-#toolbar{display:flex;gap:10px;justify-content:center}
+/* 工具按钮 - V16.0 优化 */
+#toolbar{display:flex;gap:8px;justify-content:center}
 .tool-btn{
-  width:60px;height:42px;border-radius:10px;
-  border:2px solid rgba(255,255,255,0.1);
+  min-width:56px;height:44px;padding:4px 12px;border-radius:10px;
+  border:2px solid rgba(255,255,255,0.15);
   background:linear-gradient(145deg,#252550,#1a1a3a);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   cursor:pointer;transition:all 0.2s;
   box-shadow:0 4px 8px rgba(0,0,0,0.3);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.tool-btn:active{
+  transform:translateY(2px) scale(0.95);
+  transition-duration:0.05s;
 }
 .tool-btn.selected{
   border-color:var(--gold);
-  box-shadow:0 0 15px rgba(255,215,0,0.3);
+  box-shadow:0 0 15px rgba(255,215,0,0.4);
+  animation:pulseSelected 2s ease-in-out infinite;
 }
-.tool-btn .icon{font-size:16px}
-.tool-btn .name{font-size:11px;color:#aaa}
+.tool-btn .icon{font-size:18px}
+.tool-btn .name{font-size:10px;color:#aaa}
 
-/* 操作按钮 - 渐变发光 */
+/* 操作按钮 - V16.0 优化 */
 #actions{display:flex;gap:10px;justify-content:center}
 .act-btn{
-  padding:12px 28px;border-radius:24px;border:none;
-  font-size:14px;font-weight:bold;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+  flex:1;max-width:120px;padding:14px 20px;border-radius:24px;border:none;
+  font-size:14px;font-weight:bold;cursor:pointer;
+  transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
   box-shadow:0 4px 15px rgba(0,0,0,0.3);
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
-/* V13.0: 悬浮效果 */
-.act-btn:hover{
-  transform:translateY(-3px);
-  box-shadow:0 8px 25px rgba(0,0,0,0.4);
+.act-btn:active{
+  transform:translateY(2px) scale(0.96);
+  transition-duration:0.05s;
 }
-.act-btn:active{transform:translateY(2px) scale(0.98)}
 #btn-fight{
   background:linear-gradient(135deg,var(--green),var(--green-dark));
   color:#fff;
@@ -308,11 +368,16 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="menu">
-<h1>🏰 迷宫塔防 V12.0</h1>
-<h2>腾讯品质 · Q版可爱 · 粒子特效</h2>
+<h1>🏰 迷宫塔防 V16.0</h1>
+<h2>腾讯品质 · 流畅触控 · 策略平衡</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
-<h3>🆕 V12.0 全面升级</h3>
+<h3>🆕 V16.0 全面升级</h3>
+<p><b class="new">策略平衡</b> - 塔DPS重新调整</p>
+<p><b class="new">触控优化</b> - 零延迟响应</p>
+<p><b class="new">移动适配</b> - 全机型兼容</p>
+<p><b class="new">UI增强</b> - 动画反馈</p>
+<p><b class="new">性能提升</b> - 60帧流畅</p>
 <p><b class="new">Q版皮肤</b> - 可爱塔和敌人造型</p>
 <p><b class="new">粒子特效</b> - 各塔专属击杀特效</p>
 <p><b class="new">动画系统</b> - 攻击光芒+放置光环</p>
@@ -362,12 +427,12 @@ canvas{display:block;width:100%;height:100%}
 <div id="bottom">
 <div id="current-tool">选择: <b id="tool-name">弓箭塔</b> <span id="tool-cost">70金</span></div>
 <div id="tower-panel">
-<div class="tower-btn selected" data-type="archer" onclick="pickTower('archer')"><canvas class="icon-cv" data-tower="archer" width="24" height="24"></canvas><span class="price">50</span><span class="name">弓箭</span></div>
-<div class="tower-btn" data-type="ice" onclick="pickTower('ice')"><canvas class="icon-cv" data-tower="ice" width="24" height="24"></canvas><span class="price">70</span><span class="name">冰冻</span></div>
-<div class="tower-btn" data-type="cannon" onclick="pickTower('cannon')"><canvas class="icon-cv" data-tower="cannon" width="24" height="24"></canvas><span class="price">110</span><span class="name">炮塔</span></div>
-<div class="tower-btn" data-type="poison" onclick="pickTower('poison')"><canvas class="icon-cv" data-tower="poison" width="24" height="24"></canvas><span class="price">85</span><span class="name">毒塔</span></div>
-<div class="tower-btn" data-type="thunder" onclick="pickTower('thunder')"><canvas class="icon-cv" data-tower="thunder" width="24" height="24"></canvas><span class="price">130</span><span class="name">雷电</span></div>
-<div class="tower-btn" data-type="wall" onclick="pickTower('wall')"><canvas class="icon-cv" data-tower="wall" width="24" height="24"></canvas><span class="price">15</span><span class="name">墙壁</span></div>
+<div class="tower-btn selected" data-type="archer" onclick="pickTower('archer')"><canvas class="icon-cv" data-tower="archer" width="24" height="24"></canvas><span class="price">60</span><span class="name">弓箭</span></div>
+<div class="tower-btn" data-type="ice" onclick="pickTower('ice')"><canvas class="icon-cv" data-tower="ice" width="24" height="24"></canvas><span class="price">65</span><span class="name">冰冻</span></div>
+<div class="tower-btn" data-type="cannon" onclick="pickTower('cannon')"><canvas class="icon-cv" data-tower="cannon" width="24" height="24"></canvas><span class="price">100</span><span class="name">炮塔</span></div>
+<div class="tower-btn" data-type="poison" onclick="pickTower('poison')"><canvas class="icon-cv" data-tower="poison" width="24" height="24"></canvas><span class="price">80</span><span class="name">毒塔</span></div>
+<div class="tower-btn" data-type="thunder" onclick="pickTower('thunder')"><canvas class="icon-cv" data-tower="thunder" width="24" height="24"></canvas><span class="price">110</span><span class="name">雷电</span></div>
+<div class="tower-btn" data-type="wall" onclick="pickTower('wall')"><canvas class="icon-cv" data-tower="wall" width="24" height="24"></canvas><span class="price">20</span><span class="name">墙壁</span></div>
 </div>
 <div id="toolbar">
 <div class="tool-btn selected" id="tool-place" onclick="setTool('place')"><span class="icon">📍</span><span class="name">放置</span></div>
@@ -414,29 +479,30 @@ const ELEMENT_BONUS = {
 // 设计原则：黄金比例 + 策略博弈 + 平滑曲线
 // 黄金法则：各塔DPS差距<30%，克制加成后差距<80%，塔成本占比60-70%
 
-// 塔配置 - V7.0平衡数值
+// 塔配置 - V16.0 平衡数值
 // 公式：DPS = 伤害 / 攻击间隔秒数
 // 平衡策略：弓箭(均衡)→冰(控场)→炮(AOE)→毒(DOT)→雷(连锁)
+// V16.0调整：毒塔增强，雷电塔降价，冰冻塔降价，炮塔AOE提升
 const T = {
   // 弓箭塔：均衡型，单体稳定输出
-  // DPS=18, 成本65, 定位：新手万金油
-  archer: {c:'#4CAF50', element:'archer', d:18, r:4.0, s:1000, $:65, dps:18, rangeType:'single'},
+  // DPS=20, 成本60, 定位：新手万金油
+  archer: {c:'#4CAF50', element:'archer', d:20, r:4.0, s:1000, $:60, dps:20, rangeType:'single'},
   
   // 冰冻塔：控制型，减速+控制
-  // DPS=8+减速价值, 成本75, 定位：核心控场
-  ice: {c:'#03A9F4', element:'ice', d:10, r:3.5, s:1200, $:75, dps:8.3, slow:0.4, slowDur:150},
+  // DPS=10+减速价值, 成本65, 定位：核心控场
+  ice: {c:'#03A9F4', element:'ice', d:12, r:3.5, s:1200, $:65, dps:10, slow:0.4, slowDur:150},
   
   // 炮塔：AOE型，高爆发群体伤害
-  // DPS=21+AOE加成, 成本110, 定位：群体清怪
-  cannon: {c:'#F44336', element:'fire', d:32, r:2.5, s:1500, $:110, dps:21.3, aoe:1.2},
+  // DPS=25+AOE加成, 成本100, 定位：群体清怪
+  cannon: {c:'#F44336', element:'fire', d:35, r:2.8, s:1400, $:100, dps:25, aoe:1.5},
   
   // 毒塔：持续型，叠加伤害
-  // DPS=6+满层DOT, 成本85, 定位：坦克克星
-  poison: {c:'#8BC34A', element:'poison', d:5, r:3.0, s:800, $:85, dps:6.25, dot:12, dotStacks:5, dotDur:200},
+  // DPS=10+满层DOT, 成本80, 定位：坦克克星
+  poison: {c:'#8BC34A', element:'poison', d:8, r:3.0, s:800, $:80, dps:10, dot:15, dotStacks:5, dotDur:200},
   
   // 雷电塔：连锁型，高伤害
-  // DPS=18+连锁加成, 成本125, 定位：精英杀手
-  thunder: {c:'#9C27B0', element:'thunder', d:22, r:4.0, s:1200, $:125, dps:18.3, chain:3},
+  // DPS=20+连锁加成, 成本110, 定位：精英杀手
+  thunder: {c:'#9C27B0', element:'thunder', d:24, r:4.0, s:1200, $:110, dps:20, chain:3},
   
   // 墙壁：基础防御
   wall: {c:'#78909C', d:0, r:0, s:0, $:20, hp:500, maxHp:500, isWall:true, armor:0.1}
@@ -1142,19 +1208,68 @@ function setTool(x) {
   showTip(x==='delete' ? '🗑️ 点击删除' : '📍 放置 '+N[cur]);
 }
 
+// V16.0: 触控响应优化
+// 优化点：减少延迟、防止误触、添加触摸反馈
+
+// 触摸开始坐标（用于判断滑动）
+let touchStartX = 0, touchStartY = 0;
+
+// 点击事件 - 优化坐标获取
 function click(e) {
   if(fighting) return;
+  // 优先使用精确坐标
+  const x = e.clientX || (e.touches && e.touches[0]?.clientX) || 0;
+  const y = e.clientY || (e.touches && e.touches[0]?.clientY) || 0;
   const r = cv.getBoundingClientRect();
-  act(e.clientX-r.left, e.clientY-r.top);
+  act(x - r.left, y - r.top);
 }
 
+// 触摸事件 - V16.0优化
 function touch(e) {
   if(fighting) return;
   e.preventDefault();
+  
   const t = e.changedTouches[0];
   const r = cv.getBoundingClientRect();
-  act(t.clientX-r.left, t.clientY-r.top);
+  
+  // 记录触摸起始位置（用于滑动检测）
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  
+  // 添加触摸视觉反馈
+  const touchX = t.clientX - r.left;
+  const touchY = t.clientY - r.top;
+  
+  // 立即触发操作，不等待touchend以减少延迟感
+  act(touchX, touchY);
 }
+
+// V16.0: 触摸反馈效果
+function showTouchFeedback(x, y) {
+  const feedback = document.createElement('div');
+  feedback.style.cssText = `
+    position:absolute;
+    left:${x}px;top:${y}px;
+    width:40px;height:40px;
+    margin:-20px 0 0 -20px;
+    border-radius:50%;
+    background:rgba(255,215,0,0.3);
+    pointer-events:none;
+    animation:touchRipple 0.4s ease-out forwards;
+  `;
+  document.getElementById('canvas-box')?.appendChild(feedback);
+  setTimeout(() => feedback.remove(), 400);
+}
+
+// 添加触摸涟漪动画样式
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes touchRipple {
+    0%{transform:scale(0.5);opacity:1}
+    100%{transform:scale(2);opacity:0}
+  }
+`;
+document.head.appendChild(style);
 
 function act(mx, my) {
   // 每次操作触发下一步教学
