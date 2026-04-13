@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0d0d1f">
 <meta name="msapplication-navbutton-color" content="#0d0d1f">
 <meta name="apple-mobile-web-app-title" content="迷宫塔防">
-<title>迷宫塔防 V16.4 - 腾讯品质</title>
+<title>迷宫塔防 V18.0 - Bug修复版</title>
 <style>
 /* V16.0: 移动端适配 */
 html,body{
@@ -369,7 +369,7 @@ canvas{display:block;width:100%;height:100%}
 <body>
 <div id="debug" style="position:fixed;top:0;left:0;background:#1a1a1a;color:#0f0;z-index:9999;font-size:14px;padding:8px 12px;font-family:monospace;display:block;">DEBUG: 初始化中...</div>
 <div id="menu">
-<h1>🏰 迷宫塔防 V16.4</h1>
+<h1>🏰 迷宫塔防 V18.0</h1>
 <h2>腾讯品质 · 流畅触控 · 策略平衡</h2>
 <button class="menu-btn" onclick="startGame()">▶ 开始游戏</button>
 <div class="guide">
@@ -480,33 +480,32 @@ const ELEMENT_BONUS = {
 // 设计原则：黄金比例 + 策略博弈 + 平滑曲线
 // 黄金法则：各塔DPS差距<30%，克制加成后差距<80%，塔成本占比60-70%
 
-// 塔配置 - V16.0 平衡数值
+// 塔配置 - V18.0 平衡数值（降低塔成本）
 // 公式：DPS = 伤害 / 攻击间隔秒数
-// 平衡策略：弓箭(均衡)→冰(控场)→炮(AOE)→毒(DOT)→雷(连锁)
-// V16.0调整：毒塔增强，雷电塔降价，冰冻塔降价，炮塔AOE提升
+// V18.0调整：大幅降低所有塔成本，让玩家能更快建立防线
 const T = {
   // 弓箭塔：均衡型，单体稳定输出
-  // DPS=20, 成本60, 定位：新手万金油
-  archer: {c:'#4CAF50', element:'archer', d:20, r:4.0, s:1000, $:60, dps:20, rangeType:'single'},
+  // DPS=20, 成本45(原60), 定位：新手万金油
+  archer: {c:'#4CAF50', element:'archer', d:20, r:4.0, s:1000, $:45, dps:20, rangeType:'single'},
   
   // 冰冻塔：控制型，减速+控制
-  // DPS=10+减速价值, 成本65, 定位：核心控场
-  ice: {c:'#03A9F4', element:'ice', d:12, r:3.5, s:1200, $:65, dps:10, slow:0.4, slowDur:150},
+  // DPS=10+减速价值, 成本50(原65), 定位：核心控场
+  ice: {c:'#03A9F4', element:'ice', d:12, r:3.5, s:1200, $:50, dps:10, slow:0.4, slowDur:150},
   
   // 炮塔：AOE型，高爆发群体伤害
-  // DPS=25+AOE加成, 成本100, 定位：群体清怪
-  cannon: {c:'#F44336', element:'fire', d:35, r:2.8, s:1400, $:100, dps:25, aoe:1.5},
+  // DPS=25+AOE加成, 成本80(原100), 定位：群体清怪
+  cannon: {c:'#F44336', element:'fire', d:35, r:2.8, s:1400, $:80, dps:25, aoe:1.5},
   
   // 毒塔：持续型，叠加伤害
-  // DPS=10+满层DOT, 成本80, 定位：坦克克星
-  poison: {c:'#8BC34A', element:'poison', d:8, r:3.0, s:800, $:80, dps:10, dot:15, dotStacks:5, dotDur:200},
+  // DPS=10+满层DOT, 成本60(原80), 定位：坦克克星
+  poison: {c:'#8BC34A', element:'poison', d:8, r:3.0, s:800, $:60, dps:10, dot:15, dotStacks:5, dotDur:200},
   
   // 雷电塔：连锁型，高伤害
-  // DPS=20+连锁加成, 成本110, 定位：精英杀手
-  thunder: {c:'#9C27B0', element:'thunder', d:24, r:4.0, s:1200, $:110, dps:20, chain:3},
+  // DPS=20+连锁加成, 成本90(原110), 定位：精英杀手
+  thunder: {c:'#9C27B0', element:'thunder', d:24, r:4.0, s:1200, $:90, dps:20, chain:3},
   
   // 墙壁：基础防御
-  wall: {c:'#78909C', d:0, r:0, s:0, $:20, hp:500, maxHp:500, isWall:true, armor:0.1}
+  wall: {c:'#78909C', d:0, r:0, s:0, $:15, hp:500, maxHp:500, isWall:true, armor:0.1}
 };
 
 const N = {
@@ -695,9 +694,10 @@ function getEnemyHP(baseHP, wave) {
   return Math.floor(baseHP * Math.pow(1 + wave * 0.08, wave / 10));
 }
 
-// 奖励曲线：随波次适度增长，保持金币购买力
+// V18.0: 奖励曲线 - 大幅提升金币奖励，确保玩家能持续购买塔
+// 公式：gold = baseGold × (1.3 + wave × 0.15)，比之前更激进
 function getEnemyGold(baseGold, wave) {
-  return Math.floor(baseGold * (1 + wave * 0.05));
+  return Math.floor(baseGold * (1.3 + wave * 0.15));
 }
 
 // ========== 存档系统 ==========
@@ -763,6 +763,7 @@ function resize() {
   if(W>0 && H>0 && cv) {
     cv.width = W;
     cv.height = H;
+    // V18.0: 修复变量遮蔽bug - 不再用let声明，直接赋值全局变量
     ox = Math.floor((W - COLS*CS)/2);
     oy = Math.floor((H - ROWS*CS)/2);
   }
@@ -2027,14 +2028,29 @@ function loop() {
     if(p.l <= 0) parts.splice(i, 1);
   }
   
+  // V18.0: 防止粒子数组无限增长导致内存泄漏
+  if(parts.length > 200) {
+    parts = parts.slice(-100);
+  }
+  
   for(let i=dmgTexts.length-1; i>=0; i--) {
     dmgTexts[i].y -= 1.5;
     dmgTexts[i].life--;
     if(dmgTexts[i].life <= 0) dmgTexts.splice(i, 1);
   }
   
+  // V18.0: 防止文字数组无限增长
+  if(dmgTexts.length > 50) {
+    dmgTexts = dmgTexts.slice(-30);
+  }
+  
   // V12.0: 更新动画
   updateAnimations();
+  
+  // V18.0: 防止动画数组无限增长
+  if(animations.list && animations.list.length > 50) {
+    animations.list = animations.list.slice(-30);
+  }
   
   render();
   requestAnimationFrame(loop);
@@ -2222,10 +2238,13 @@ function spawnKillEffect(x, y, isBoss=false) {
 
 // ========== V14 腾讯品质渲染 ==========
 function render() {
-  // V16.5: 先更新debug信息，再检查是否需要提前退出
+  // V18.0: 先更新debug信息，再检查是否需要提前退出
   updateDebug();
   
-  if(!ctx || W===0 || H===0) return;
+  // V18.0: 修复重复检查bug
+  if(!ctx || W===0 || H===0) {
+    return;
+  }
   
   // V11.0: 屏幕震动效果
   let shakeOffsetX = 0, shakeOffsetY = 0;
@@ -2241,13 +2260,6 @@ function render() {
       shakeIntensity = 0;
       shakeDuration = 0;
     }
-  }
-  
-// V15.0: 优化渲染 - 直接渲染，无缓存（性能足够，代码简洁）
-  if(!ctx || W===0 || H===0) {
-    // 更新debug信息
-    updateDebug();
-    return;
   }
 
   // 深色渐变背景
@@ -2798,9 +2810,14 @@ function drawTowerIcon(ctx, type, x, y, r) {
   ctx.restore();
 }
   
-  // V17.0: 敌人渲染 - 独立函数（在render()中调用）
+  // V18.0: 敌人渲染 - 独立函数（在render()中调用）
 function renderEnemies(ctx) {
+  if(!ctx || enemies.length === 0) return;
+  
   for(const e of enemies) {
+    // V18.0: 安全检查 - 确保敌人坐标有效
+    if(typeof e.x !== 'number' || typeof e.y !== 'number') continue;
+    
     const sz = e.sz * CS * 0.7;
     
     ctx.shadowColor = 'rgba(0,0,0,0.3)';
