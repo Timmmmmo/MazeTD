@@ -1496,14 +1496,14 @@ function spawnWave() {
     for(let i = 0; i < cnt; i++) {
       const etype = weightedRandom(typeWeights);
       
-      // V9.0: 出怪间隔与敌人速度匹配
-      // 敌人速度降低后，适当拉长出怪间隔，让玩家有时间
+      // V16.1: 出怪间隔调整，增加准备时间
+      // 波次间隔增加，让玩家有时间部署防御
       setTimeout(() => {
         if(fighting) {
           const e = createEnemyByType(etype, wave);
           enemies.push(e);
         }
-      }, i * (500 - Math.min(wave * 8, 200))); // 波次越高，出怪越快，但有下限
+      }, i * (800 - Math.min(wave * 5, 350))); // 波次越高出怪越快，从500→800ms
     }
   }
   
@@ -1820,12 +1820,13 @@ function loop() {
     }
   }
   
-  // 波次结束检测
+  // 波次结束检测 - V16.1: 增加波次间隔让玩家准备
   if(enemies.length === 0) {
     if(wave < currentLevel.waves) {
-      setTimeout(() => { if(fighting) spawnWave(); }, 900);
+      // 波次间隔从900ms增加到3000ms，给玩家足够准备时间
+      setTimeout(() => { if(fighting) spawnWave(); }, 3000);
     } else {
-      setTimeout(levelComplete, 400);
+      setTimeout(levelComplete, 600);
       return;
     }
   }
