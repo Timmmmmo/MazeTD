@@ -1650,9 +1650,9 @@ function loop() {
     // 当前点和下一个点的坐标
     const currX = usePath[idx][0];
     const currY = usePath[idx][1];
-    const nextIdx = (idx + 1) % pathLen;
-    const nextX = usePath[nextIdx][0];
-    const nextY = usePath[nextIdx][1];
+    const nextPathIdx = (idx + 1) % pathLen;
+    const nextX = usePath[nextPathIdx][0];
+    const nextY = usePath[nextPathIdx][1];
     
     // 平滑插值计算位置
     e.x = offsetX + (currX + t * (nextX - currX) + 0.5) * CS;
