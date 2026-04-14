@@ -1793,8 +1793,8 @@ function loop() {
     e.x = ox + (currX + t * (nextX - currX) + 0.5) * CS;
     e.y = oy + (currY + t * (nextY - currY) + 0.5) * CS;
     
-    // 到达终点
-    if(e.pi >= usePath.length-1) {
+    // 到达终点 - V18.2: 防御性修复，防止空路径导致立即移除
+    if(usePath && usePath.length > 1 && e.pi >= usePath.length-1) {
       // 侦察兵存活 - 记录沿途的塔
       if(e.isScout) {
         aiMemory.scoutSurvived++;
