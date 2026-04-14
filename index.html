@@ -1447,7 +1447,10 @@ function toggleBattle() {
     document.getElementById('btn-fight').textContent = '⏸ 暂停';
     document.getElementById('entry-mark').style.display = 'none';
     document.getElementById('exit-mark').style.display = 'none';
-    if(!enemies.length && wave < currentLevel.waves) spawnWave();
+    if(!enemies.length && wave < currentLevel.waves) {
+      console.log('[DEBUG] Calling spawnWave(), current wave:', wave);
+      spawnWave();
+    }
     loop();
   } else {
     fighting = false;
@@ -1465,6 +1468,8 @@ function spawnWave() {
     isBossWave ? '👹 '+chapterInfo.name+'BOSS!' : '🌊 第'+wave+'波 ['+chapterInfo.name+']', 
     isBossWave ? '#F44336' : chapterInfo.color
   );
+  
+  console.log('[DEBUG] spawnWave called, wave:', wave, 'isBossWave:', isBossWave);
   
   if(isBossWave) {
     // BOSS战：BOSS + 随从小怪
@@ -1506,6 +1511,9 @@ function spawnWave() {
         if(fighting) {
           const e = createEnemyByType(etype, wave);
           enemies.push(e);
+          console.log('[DEBUG] Enemy spawned, type:', etype, 'total enemies:', enemies.length);
+        } else {
+          console.log('[DEBUG] Enemy spawn skipped, fighting=false');
         }
       }, i * (800 - Math.min(wave * 5, 350))); // 波次越高出怪越快，从500→800ms
     }
@@ -2812,7 +2820,19 @@ function drawTowerIcon(ctx, type, x, y, r) {
   
   // V18.0: 敌人渲染 - 独立函数（在render()中调用）
 function renderEnemies(ctx) {
-  if(!ctx || enemies.length === 0) return;
+  if(!ctx) {
+    console.log('[DEBUG] renderEnemies skipped, ctx is null');
+    return;
+  }
+  if(enemies.length === 0) {
+    // 只在战斗时显示警告
+    if(fighting) {
+      console.log('[DEBUG] renderEnemies skipped, no enemies but fighting=true');
+    }
+    return;
+  }
+  
+  console.log('[DEBUG] Rendering', enemies.length, 'enemies');
   
   for(const e of enemies) {
     // V18.0: 安全检查 - 确保敌人坐标有效
