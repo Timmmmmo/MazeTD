@@ -1633,7 +1633,7 @@ function makeEnemy(hp, co, sz, g, opts={}, spd=0.35) {
     shiftTimer: 0,
     currentElement: 'normal',
     eye: Math.random() * Math.PI * 2,
-    customPath: customPath
+    customPath: null  // V18.3: 修复未定义变量bug
   };
 }
 
@@ -1836,11 +1836,16 @@ function loop() {
   if(enemies.length === 0) {
     if(wave < currentLevel.waves && !waveScheduled) {
       waveScheduled = true;
+      console.log('[DEBUG] Scheduling next wave, current wave:', wave, 'total waves:', currentLevel.waves);
       setTimeout(() => { 
-        if(fighting) spawnWave(); 
+        console.log('[DEBUG] Wave setTimeout fired, fighting:', fighting);
+        if(fighting) {
+          spawnWave(); 
+        }
         waveScheduled = false;
       }, 3000);
     } else if(wave >= currentLevel.waves) {
+      console.log('[DEBUG] All waves complete, calling levelComplete');
       setTimeout(levelComplete, 600);
       return;
     }
