@@ -5,6 +5,7 @@ import { RenderEnemy } from './render-enemy.js';
 import { RenderBullet } from './render-bullet.js';
 import { RenderParticle } from './render-particle.js';
 import { RenderStarfield } from './render-starfield.js';
+import { COLS, ROWS, CS } from './constants.js';
 
 class MazeTDApp {
   constructor() {
