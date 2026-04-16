@@ -1,0 +1,16 @@
+{
+    "version": "22.0.0",
+    "name": "mazetd-pixi",
+    "scripts": {
+        "preview": "vite preview",
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "type": "module",
+    "dependencies": {
+        "pixi.js": "^8.18.1"
+    },
+    "devDependencies": {
+        "vite": "^5.4.0"
+    }
+}
