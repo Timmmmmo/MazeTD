@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>MazeTD V22.0</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏰</text></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#050510;color:#e0e0e0;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;user-select:none;-webkit-user-select:none}
@@ -16,12 +17,12 @@ body{background:#050510;color:#e0e0e0;font-family:system-ui,-apple-system,sans-s
 .si{flex:1;text-align:center}.si span{color:#FFD700;font-weight:700}.si small{color:#888;font-size:.85em}
 #wave-msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.4em;font-weight:700;text-align:center;z-index:100;display:none;text-shadow:0 0 20px currentColor;pointer-events:none}
 #canvas-box{position:relative;width:100%;aspect-ratio:8/12;border-radius:8px;overflow:hidden;border:1px solid #2a2a5a}
-#canvas-box canvas{width:100%!important;height:100%!important;display:block}
-#bottom{display:flex;gap:4px;margin-top:5px;padding:5px;background:rgba(20,20,50,.8);border-radius:8px;flex-wrap:wrap}
-.tb{flex:1;min-width:calc(12.5% - 4px);padding:6px 0;border:none;border-radius:6px;cursor:pointer;font-size:.7em;font-weight:600;transition:all .2s;background:rgba(30,30,60,.8);color:#888}
+#canvas-box canvas{width:100%!important;height:100%!important}
+#bottom{display:flex;gap:4px;margin-top:5px;padding:5px;background:rgba(20,20,50,.8);border-radius:8px}
+.tb{flex:1;padding:6px 0;border:none;border-radius:6px;cursor:pointer;font-size:.7em;font-weight:600;transition:all .2s;background:rgba(30,30,60,.8);color:#888}
 .tb.selected{background:rgba(0,229,255,.2);color:#00E5FF}
 .tb.disabled{opacity:.35;cursor:not-allowed}
-#fight{border:none;border-radius:6px;padding:8px 4px;background:linear-gradient(135deg,#FF5722,#FF9800);color:#fff;font-size:.65em;font-weight:700;cursor:pointer;flex:1;min-width:calc(12.5% - 4px)}
+#fight{border:none;border-radius:6px;padding:8px 12px;background:linear-gradient(135deg,#FF5722,#FF9800);color:#fff;font-size:.75em;font-weight:700;cursor:pointer;flex:.8}
 #tip{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:8px 16px;border-radius:20px;font-size:.85em;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200;white-space:nowrap}
 #tip.show{opacity:1}
 #over,#level-complete{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);justify-content:center;align-items:center;flex-direction:column;z-index:300}
@@ -33,64 +34,64 @@ body{background:#050510;color:#e0e0e0;font-family:system-ui,-apple-system,sans-s
 #stars{font-size:2em;margin:5px 0}
 #upgrade-panel{display:none;position:fixed;background:rgba(20,20,50,.97);border:1px solid #00E5FF;border-radius:10px;padding:12px;min-width:160px;z-index:250;font-size:.85em;text-align:center}
 #up-info{margin-bottom:8px;line-height:1.6}
-#up-btn{padding:6px 14px;border:none;border-radius:6px;background:#00E5FF;color:#000;font-weight:700;cursor:pointer;width:100%;font-size:.9em}
+#up-btn{padding:6px 14px;border:none;border-radius:6px;background:#00E5FF;color:#000;font-weight:700;cursor:pointer;width:100%}
 #up-btn:disabled{background:#555;color:#888;cursor:not-allowed}
 #entry-mark,#exit-mark{position:absolute;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.4em;pointer-events:none;z-index:5}
 #entry-mark{top:0}#exit-mark{bottom:0}
 </style>
+  <script type="module" crossorigin src="./assets/index-CSbd_rF4.js"></script>
 </head>
 <body>
 <div id="menu">
-<h1>MazeTD</h1>
-<p style="color:#888;margin-bottom:15px">Build mazes, defend against enemies!</p>
-<button class="tg" id="btn-start">Start Game</button>
+<h1>🏰 迷宫塔防</h1>
+<p style="color:#888;margin-bottom:15px">构建迷宫，抵御敌人！</p>
+<button id="btn-start" class="tg" onclick="window.startGame()">▶ 开始游戏</button>
 </div>
 <div id="game">
 <div id="top">
-<div class="si"><small>Gold</small><br><span id="sg">650</span></div>
-<div class="si"><small>HP</small><br><span id="sh">20</span></div>
-<div class="si"><small>Wave</small><br><span id="sw">0</span></div>
-<div class="si"><small>Level</small><br><span id="sl">1-1</span></div>
+<div class="si"><small>💰 金币</small><br><span id="sg">400</span></div>
+<div class="si"><small>🩸 生命</small><br><span id="sh">20</span></div>
+<div class="si"><small>⚔️ 波次</small><br><span id="sw">0</span></div>
+<div class="si"><small>🗺️ 关卡</small><br><span id="sl">1-1</span></div>
 </div>
 <div id="canvas-box">
-<div id="entry-mark">IN</div>
-<div id="exit-mark">OUT</div>
+<div id="entry-mark" style="color:#00E676">⬇️</div>
+<div id="exit-mark" style="color:#FF1744">⬆️</div>
 </div>
 <div id="bottom">
-<button class="tb" id="tb-archer">Archer<br><small>40g</small></button>
-<button class="tb" id="tb-ice">Ice<br><small>45g</small></button>
-<button class="tb" id="tb-cannon">Cannon<br><small>70g</small></button>
-<button class="tb" id="tb-poison">Poison<br><small>55g</small></button>
-<button class="tb" id="tb-thunder">Thunder<br><small>80g</small></button>
-<button class="tb" id="tb-wall">Wall<br><small>15g</small></button>
-<button class="tb" id="tb-del">Del</button>
-<button id="fight">FIGHT</button>
+<button class="tb" id="tb-archer" onclick="window.pickTower('archer')">🏹<br><small>40金</small></button>
+<button class="tb" id="tb-ice" onclick="window.pickTower('ice')">❄️<br><small>45金</small></button>
+<button class="tb" id="tb-cannon" onclick="window.pickTower('cannon')">💥<br><small>70金</small></button>
+<button class="tb" id="tb-poison" onclick="window.pickTower('poison')">☠️<br><small>55金</small></button>
+<button class="tb" id="tb-thunder" onclick="window.pickTower('thunder')">⚡<br><small>80金</small></button>
+<button class="tb" id="tb-wall" onclick="window.pickTower('wall')">🧱<br><small>15金</small></button>
+<button class="tb" id="tb-del" onclick="window.setTool('delete')">🗑️</button>
+<button id="fight" onclick="window.toggleBattle()">⚔️ 开战</button>
 </div>
 </div>
 <div id="wave-msg"></div>
 <div id="tip"></div>
 <div id="over">
 <div class="modal">
-<h2>Game Over</h2>
-<p>Wave: <span id="fw">0</span></p>
-<p>Kills: <span id="fk">0</span></p>
-<button id="btn-retry">Retry</button>
-<button id="btn-menu" class="secondary">Menu</button>
+<h2>💀 游戏结束</h2>
+<p>到达波次: <span id="fw">0</span></p>
+<p>击杀敌人: <span id="fk">0</span></p>
+<button id="btn-retry" onclick="window.startGame()">🔄 重试</button>
+<button id="btn-menu" class="secondary" onclick="window.showMenu()">🏠 菜单</button>
 </div>
 </div>
 <div id="level-complete">
 <div class="modal">
-<h2>Level Complete!</h2>
-<div id="stars"></div>
-<p>Bonus: <span id="bg">+0</span> Gold</p>
-<button id="btn-next">Next Level</button>
-<button id="btn-level-menu" class="secondary">Menu</button>
+<h2>🎉 关卡完成!</h2>
+<div id="stars">⭐⭐⭐</div>
+<p>奖励: <span id="bg">+0</span> 金币</p>
+<button id="btn-next" onclick="window.nextLevel()">▶ 下一关</button>
+<button id="btn-level-menu" class="secondary" onclick="window.showMenu()">🏠 菜单</button>
 </div>
 </div>
 <div id="upgrade-panel">
 <div id="up-info"></div>
-<button id="up-btn">Upgrade</button>
+<button id="up-btn" onclick="window.doUpgrade()">升级</button>
 </div>
-<script type="module" src="./assets/index-DK8m9S9W.js"></script>
 </body>
 </html>

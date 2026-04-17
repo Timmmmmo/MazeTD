@@ -44,7 +44,7 @@ body{background:#050510;color:#e0e0e0;font-family:system-ui,-apple-system,sans-s
 <div id="menu">
 <h1>🏰 迷宫塔防</h1>
 <p style="color:#888;margin-bottom:15px">构建迷宫，抵御敌人！</p>
-<button class="tg" onclick="startGame()">▶ 开始游戏</button>
+<button id="btn-start" class="tg" onclick="window.startGame()">▶ 开始游戏</button>
 </div>
 <div id="game">
 <div id="top">
@@ -58,14 +58,14 @@ body{background:#050510;color:#e0e0e0;font-family:system-ui,-apple-system,sans-s
 <div id="exit-mark" style="color:#FF1744">⬆️</div>
 </div>
 <div id="bottom">
-<button class="tb" id="tb-archer" onclick="pickTower('archer')">🏹<br><small>40金</small></button>
-<button class="tb" id="tb-ice" onclick="pickTower('ice')">❄️<br><small>45金</small></button>
-<button class="tb" id="tb-cannon" onclick="pickTower('cannon')">💥<br><small>70金</small></button>
-<button class="tb" id="tb-poison" onclick="pickTower('poison')">☠️<br><small>55金</small></button>
-<button class="tb" id="tb-thunder" onclick="pickTower('thunder')">⚡<br><small>80金</small></button>
-<button class="tb" id="tb-wall" onclick="pickTower('wall')">🧱<br><small>15金</small></button>
-<button class="tb" id="tb-del" onclick="setTool('delete')">🗑️</button>
-<button id="fight" onclick="toggleBattle()">⚔️ 开战</button>
+<button class="tb" id="tb-archer" onclick="window.pickTower('archer')">🏹<br><small>40金</small></button>
+<button class="tb" id="tb-ice" onclick="window.pickTower('ice')">❄️<br><small>45金</small></button>
+<button class="tb" id="tb-cannon" onclick="window.pickTower('cannon')">💥<br><small>70金</small></button>
+<button class="tb" id="tb-poison" onclick="window.pickTower('poison')">☠️<br><small>55金</small></button>
+<button class="tb" id="tb-thunder" onclick="window.pickTower('thunder')">⚡<br><small>80金</small></button>
+<button class="tb" id="tb-wall" onclick="window.pickTower('wall')">🧱<br><small>15金</small></button>
+<button class="tb" id="tb-del" onclick="window.setTool('delete')">🗑️</button>
+<button id="fight" onclick="window.toggleBattle()">⚔️ 开战</button>
 </div>
 </div>
 <div id="wave-msg"></div>
@@ -75,8 +75,8 @@ body{background:#050510;color:#e0e0e0;font-family:system-ui,-apple-system,sans-s
 <h2>💀 游戏结束</h2>
 <p>到达波次: <span id="fw">0</span></p>
 <p>击杀敌人: <span id="fk">0</span></p>
-<button onclick="startGame()">🔄 重试</button>
-<button class="secondary" onclick="showMenu()">🏠 菜单</button>
+<button id="btn-retry" onclick="window.startGame()">🔄 重试</button>
+<button id="btn-menu" class="secondary" onclick="window.showMenu()">🏠 菜单</button>
 </div>
 </div>
 <div id="level-complete">
@@ -84,13 +84,13 @@ body{background:#050510;color:#e0e0e0;font-family:system-ui,-apple-system,sans-s
 <h2>🎉 关卡完成!</h2>
 <div id="stars">⭐⭐⭐</div>
 <p>奖励: <span id="bg">+0</span> 金币</p>
-<button onclick="nextLevel()">▶ 下一关</button>
-<button class="secondary" onclick="showMenu()">🏠 菜单</button>
+<button id="btn-next" onclick="window.nextLevel()">▶ 下一关</button>
+<button id="btn-level-menu" class="secondary" onclick="window.showMenu()">🏠 菜单</button>
 </div>
 </div>
 <div id="upgrade-panel">
 <div id="up-info"></div>
-<button id="up-btn" onclick="doUpgrade()">升级</button>
+<button id="up-btn" onclick="window.doUpgrade()">升级</button>
 </div>
 <script type="module" src="./game.js"></script>
 </body>
