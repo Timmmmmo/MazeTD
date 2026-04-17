@@ -159,7 +159,7 @@ function render(){
   for(const t of towers){
     const tx=ox+(t.x+.5)*CS+sx,ty=oy+(t.y+.5)*CS+sy,r=t.r*CS;
     // Range indicator
-    gfxCircle=new PIXI.Graphics(); gfxCircle.circle(tx,ty,r);
+    const gfxCircle=new PIXI.Graphics();
     gfxCircle.fill(parseInt(T[t.tp]?.c?.replace('#','')||'4CAF50',16),.08);
     gfxCircle.stroke({width:1,color:parseInt(T[t.tp]?.c?.replace('#','')||'4CAF50',16),alpha:.2});
     gfx.addChild(gfxCircle);
@@ -202,7 +202,8 @@ function render(){
   
   // Damage texts
   for(const d of dmgTexts){
-    const alpha=d.life/40;
+    // Clear old damage text PIXI.Text objects (prevent ghost text accumulation)
+    gfxDmg.removeChildren().forEach(c=>{if(c.destroy)c.destroy();});
     // Use PIXI Text
     const dt=new PIXI.Text({text:d.txt,style:{fontSize:12,fill:d.co,fontWeight:'bold',dropShadow:{blur:4,color:0x000000,alpha:.8}}});
     dt.anchor.set(.5);
@@ -384,13 +385,13 @@ function toggleBattle(){
   if(!fighting){
     if(!path){showTip('⚠️ 请先建造迷宫!');return;}
     fighting=true;waveScheduled=false;
-    document.getElementById('fight').textContent='⏸ 暂停';
+    document.getElementById('fight').textContent='|| 战斗中';
     document.getElementById('entry-mark').style.display='none';
     document.getElementById('exit-mark').style.display='none';
     if(!enemies.length&&wave<currentLevel.waves)spawnWave();
     loop();
   }else{
-    fighting=false;waveScheduled=false;
+    document.getElementById('fight').textContent='▶ 开战';
     document.getElementById('fight').textContent='⚔️ 开战';
   }
 }
@@ -636,9 +637,12 @@ function startGame(){
   document.getElementById('level-complete').style.display='none';
   document.getElementById('entry-mark').style.display='flex';
   document.getElementById('exit-mark').style.display='flex';
-  document.getElementById('fight').textContent='⚔️ 开战';
-  if(!inited)initPixi().then(()=>{initGrid();updateUI();updateTool();render();setTimeout(showTutorial,500);});
-  else{initGrid();updateUI();updateTool();render();setTimeout(showTutorial,500);}
+  document.getElementById('fight').textContent='[开战]';
+  if(!inited){
+    initPixi().then(()=>{initGrid();updateUI();updateTool();render();setTimeout(showTutorial,500);});
+  }else{
+    initGrid();updateUI();updateTool();render();setTimeout(showTutorial,500);
+  }
 }
 
 function gameOver(){
